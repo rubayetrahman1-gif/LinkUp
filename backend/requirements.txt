@@ -1,1 +1,9 @@
-fastapi[standard]>=0.141.1
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg[binary]
+pydantic-settings
+email-validator
+pwdlib[argon2]
+PyJWT
+python-multipart
