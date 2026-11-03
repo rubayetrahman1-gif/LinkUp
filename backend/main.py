@@ -159,6 +159,8 @@ def get_current_user(
             )
 
         return current_user
+
+    
    # Check whether the current user is an admin
 def get_current_admin(
     current_user: User = Depends(get_current_user)
@@ -183,6 +185,8 @@ def get_current_employer(
         )
 
     return current_user
+
+
 
 # Create a new job (Employer only)
 @app.post(
@@ -224,6 +228,25 @@ def get_all_jobs():
 
         return jobs
 
+# Get a single job by ID
+@app.get(
+    "/api/jobs/{job_id}",
+    response_model=JobResponse
+)
+def get_job_by_id(job_id: int):
+    with SessionLocal() as db:
+        job = db.query(Job).filter(
+            Job.id == job_id
+        ).first()
+
+        if job is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found"
+            )
+
+        return job    
+
     
 
 # Get all users (Admin only)
@@ -247,6 +270,7 @@ def read_my_profile(
     current_user: User = Depends(get_current_user)
 ):
     return current_user
+
 
 @app.put(
     "/api/users/me",
