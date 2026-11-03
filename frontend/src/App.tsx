@@ -5,7 +5,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import JobList from "./pages/jobs/JobList";
 import JobDetails from "./pages/jobs/JobDetails";
-
+import CreateJob from "./pages/employer/CreateJob";
 function App() {
   return (
     <Routes>
@@ -14,6 +14,7 @@ function App() {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/employer/dashboard" element={<EmployerDashboard />} />
+      <Route path="/employer/create-job" element={<CreateJob />} />
       <Route path="/jobs" element={<JobList />} />
       <Route path="/jobs/:id" element={<JobDetails />} />
     </Routes>

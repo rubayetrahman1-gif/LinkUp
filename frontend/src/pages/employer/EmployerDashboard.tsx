@@ -2,8 +2,10 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMyJobs } from "../../services/jobService";
 import type { Job } from "../../types/job";
+import { useNavigate } from "react-router-dom";
 
 function EmployerDashboard() {
+  const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -32,6 +34,9 @@ function EmployerDashboard() {
       <p>Manage your job postings from here.</p>
 
       <h2>My Job Postings</h2>
+      <button onClick={() => navigate("/employer/create-job")}>
+        Create New Job
+      </button>
 
       {jobs.length === 0 ? (
         <p>You have not posted any jobs yet.</p>
