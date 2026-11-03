@@ -282,7 +282,37 @@ def update_job(
         db.refresh(job)
 
         return job
+
     
+    # Delete a job (Employer only)
+@app.delete("/api/jobs/{job_id}")
+def delete_job(
+    job_id: int,
+    current_user: User = Depends(get_current_employer)
+):
+    with SessionLocal() as db:
+        job = db.query(Job).filter(
+            Job.id == job_id
+        ).first()
+
+        if job is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found"
+            )
+
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only delete your own jobs"
+            )
+
+        db.delete(job)
+        db.commit()
+
+        return {"message": "Job deleted successfully"}
+
+
 
 # Get all users (Admin only)
 @app.get(
@@ -296,6 +326,7 @@ def get_all_users(
         users = db.query(User).order_by(User.id).all()
 
         return users
+
 
 @app.get(
     "/api/users/me",
