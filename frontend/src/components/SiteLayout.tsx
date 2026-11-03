@@ -69,7 +69,7 @@ export function SiteHeader() {
     navigate("/");
   };
 
-  const canBrowseJobs = user?.role === "job_seeker" || (!user && !profileLoading && !profileError);
+  // const canBrowseJobs = user?.role === "job_seeker" || (!user && !profileLoading && !profileError);
 
   return (
     <header className="site-header">
@@ -77,7 +77,7 @@ export function SiteHeader() {
         <Brand />
         <nav className="nav-links" aria-label="Main navigation">
           <Link to="/">Home</Link>
-          {canBrowseJobs && <Link to="/jobs">Find a job</Link>}
+          {/* {canBrowseJobs && <Link to="/jobs">Find a job</Link>} */}
         </nav>
         <div className="nav-actions">
           {user ? (
