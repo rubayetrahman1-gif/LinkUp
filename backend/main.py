@@ -228,6 +228,21 @@ def get_all_jobs():
 
         return jobs
 
+
+# Get all jobs posted by the current employer
+@app.get("/api/jobs/my-jobs", response_model=list[JobResponse])
+def get_my_jobs(
+    current_user: User = Depends(get_current_employer)
+):
+    with SessionLocal() as db:
+        jobs = db.query(Job).filter(
+            Job.employer_id == current_user.id
+        ).order_by(Job.id.desc()).all()
+
+        return jobs
+
+    
+
 # Get a single job by ID
 @app.get(
     "/api/jobs/{job_id}",
