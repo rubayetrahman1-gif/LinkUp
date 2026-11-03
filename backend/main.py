@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from models import User, Job
-from schemas import (UserRegister,UserResponse,UserLogin,UserUpdate,JobCreate,JobResponse)
+from schemas import (UserRegister,UserResponse,UserLogin,UserUpdate,JobCreate,JobUpdate,JobResponse)
 from security import (hash_password,verify_password,create_access_token,decode_access_token)
 
 app = FastAPI(title="FastAPI + React")
@@ -246,7 +246,42 @@ def get_job_by_id(job_id: int):
             )
 
         return job    
+# Update a job (Employer only)
+@app.put(
+    "/api/jobs/{job_id}",
+    response_model=JobResponse
+)
+def update_job(
+    job_id: int,
+    job_data: JobUpdate,
+    current_user: User = Depends(get_current_employer)
+):
+    with SessionLocal() as db:
+        job = db.query(Job).filter(
+            Job.id == job_id
+        ).first()
 
+        if job is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Job not found"
+            )
+
+        if job.employer_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You can only update your own jobs"
+            )
+
+        update_data = job_data.model_dump(exclude_unset=True)
+
+        for key, value in update_data.items():
+            setattr(job, key, value)
+
+        db.commit()
+        db.refresh(job)
+
+        return job
     
 
 # Get all users (Admin only)
