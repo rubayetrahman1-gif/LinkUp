@@ -1,5 +1,5 @@
 from pathlib import Path
-
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import (FastAPI,HTTPException,status,Depends)
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.exc import IntegrityError
@@ -11,6 +11,20 @@ from security import (hash_password,verify_password,create_access_token,decode_a
 
 app = FastAPI(title="FastAPI + React")
 bearer_scheme = HTTPBearer()
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5174",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 
 

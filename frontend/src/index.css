@@ -16,9 +16,10 @@
   --text-strong: #252233;
   --text: #625e6d;
   --text-muted: #817c8c;
-  --accent: #704bd8;
-  --accent-hover: #5f3fc3;
-  --accent-soft: #f2edff;
+  --accent: #3159c9;
+  --accent-hover: #2647a8;
+  --accent-soft: #edf2ff;
+  --accent-rgb: 49, 89, 201;
 }
 
 * {
@@ -38,17 +39,23 @@ body {
 }
 
 button,
+input,
+select,
+textarea,
 a {
   -webkit-tap-highlight-color: transparent;
 }
 
 a:focus-visible,
-button:focus-visible {
-  outline: 3px solid rgba(112, 75, 216, 0.4);
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid rgba(var(--accent-rgb), 0.4);
   outline-offset: 3px;
 }
 
 ::selection {
-  background: #e7deff;
-  color: #33245c;
+  background: #dce6ff;
+  color: #19336f;
 }
