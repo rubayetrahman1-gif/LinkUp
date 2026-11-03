@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getMyJobs } from "../../services/jobService";
+import { getMyJobs, deleteJob } from "../../services/jobService";
 import type { Job } from "../../types/job";
 import { useNavigate } from "react-router-dom";
 
@@ -25,6 +25,24 @@ function EmployerDashboard() {
     fetchMyJobs();
   }, []);
 
+  const handleDelete = async (jobId: number) => {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this job?",
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await deleteJob(jobId);
+
+      setJobs((currentJobs) => currentJobs.filter((job) => job.id !== jobId));
+
+      alert("Job deleted successfully!");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete job");
+    }
+  };
+
   if (loading) return <p>Loading your jobs...</p>;
   if (error) return <p>{error}</p>;
 
@@ -48,6 +66,7 @@ function EmployerDashboard() {
             <p>Location: {job.location}</p>
             <Link to={`/jobs/${job.id}`}>View Details</Link>
             <Link to={`/employer/edit-job/${job.id}`}>Edit Job</Link>
+            <button onClick={() => handleDelete(job.id)}>Delete Job</button>
             <hr />
           </div>
         ))
