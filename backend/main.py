@@ -164,6 +164,29 @@ def get_current_user(
             )
 
         return current_user
+   # Check whether the current user is an admin
+def get_current_admin(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+
+    return current_user
+# Get all users (Admin only)
+@app.get(
+    "/api/users",
+    response_model=list[UserResponse]
+)
+def get_all_users(
+    admin_user: User = Depends(get_current_admin)
+):
+    with SessionLocal() as db:
+        users = db.query(User).order_by(User.id).all()
+
+        return users
 
 @app.get(
     "/api/users/me",
