@@ -47,6 +47,7 @@ function EmployerDashboard() {
             <p>Company: {job.company_name}</p>
             <p>Location: {job.location}</p>
             <Link to={`/jobs/${job.id}`}>View Details</Link>
+            <Link to={`/employer/edit-job/${job.id}`}>Edit Job</Link>
             <hr />
           </div>
         ))
