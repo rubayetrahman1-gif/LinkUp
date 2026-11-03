@@ -1,18 +1,13 @@
 from pathlib import Path
 
-from fastapi import FastAPI
-from fastapi import HTTPException, status
+from fastapi import (FastAPI,HTTPException,status,Depends)
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
-from models import User
-from schemas import UserRegister, UserResponse
-from security import hash_password
-from schemas import UserLogin,UserUpdate
-from security import verify_password, create_access_token
-from fastapi import Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from security import decode_access_token
+from models import User, Job
+from schemas import (UserRegister,UserResponse,UserLogin,UserUpdate,JobCreate,JobResponse)
+from security import (hash_password,verify_password,create_access_token,decode_access_token)
 
 app = FastAPI(title="FastAPI + React")
 bearer_scheme = HTTPBearer()
@@ -175,6 +170,47 @@ def get_current_admin(
         )
 
     return current_user
+
+
+# Check whether the current user is an employer
+def get_current_employer(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "employer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Employer access required"
+        )
+
+    return current_user
+
+# Create a new job (Employer only)
+@app.post(
+    "/api/jobs",
+    response_model=JobResponse,
+    status_code=status.HTTP_201_CREATED
+)
+def create_job(
+    job_data: JobCreate,
+    current_user: User = Depends(get_current_employer)
+):
+    with SessionLocal() as db:
+        new_job = Job(
+            title=job_data.title,
+            company_name=job_data.company_name,
+            location=job_data.location,
+            description=job_data.description,
+            employment_type=job_data.employment_type,
+            salary=job_data.salary,
+            employer_id=current_user.id
+        )
+
+        db.add(new_job)
+        db.commit()
+        db.refresh(new_job)
+
+        return new_job
+
 # Get all users (Admin only)
 @app.get(
     "/api/users",
