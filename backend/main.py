@@ -211,6 +211,21 @@ def create_job(
 
         return new_job
 
+    
+
+# Get all available jobs
+@app.get(
+    "/api/jobs",
+    response_model=list[JobResponse]
+)
+def get_all_jobs():
+    with SessionLocal() as db:
+        jobs = db.query(Job).order_by(Job.id.desc()).all()
+
+        return jobs
+
+    
+
 # Get all users (Admin only)
 @app.get(
     "/api/users",
