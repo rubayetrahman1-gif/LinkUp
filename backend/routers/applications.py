@@ -65,4 +65,36 @@ def apply_for_job(
             "job_id": new_application.job_id,
             "status": new_application.status
         }
+# View current Job Seeker's applications
+history_router = APIRouter(
+    prefix="/api/applications",
+    tags=["Applications"]
+)
+
+
+@history_router.get("/my")
+def get_my_applications(
+    current_user: User = Depends(get_current_job_seeker)
+):
+    with SessionLocal() as db:
+        applications = db.query(
+            Application,
+            Job
+        ).join(
+            Job,
+            Application.job_id == Job.id
+        ).filter(
+            Application.job_seeker_id == current_user.id
+        ).all()
+
+        return [
+            {
+                "application_id": application.id,
+                "job_id": job.id,
+                "job_title": job.title,
+                "company_name": job.company_name,
+                "status": application.status
+            }
+            for application, job in applications
+        ]
 
