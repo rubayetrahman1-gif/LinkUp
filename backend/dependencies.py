@@ -9,6 +9,7 @@ from security import decode_access_token
 
 bearer_scheme = HTTPBearer()
 
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)
 ):
@@ -71,6 +72,18 @@ def get_current_employer(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Employer access required"
+        )
+
+    return current_user
+
+
+def get_current_job_seeker(
+    current_user: User = Depends(get_current_user)
+):
+    if current_user.role != "job_seeker":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Job Seeker access required"
         )
 
     return current_user
