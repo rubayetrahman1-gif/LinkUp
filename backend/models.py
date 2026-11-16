@@ -8,7 +8,8 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Text,
-    func
+    func,
+    UniqueConstraint
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -105,5 +106,37 @@ class Job(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
+        nullable=False
+    )
+class Application(Base):
+    __tablename__ = "applications"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "job_id",
+            "job_seeker_id",
+            name="unique_job_application"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(
+        Integer,
+        primary_key=True,
+        index=True
+    )
+
+    job_id: Mapped[int] = mapped_column(
+        ForeignKey("jobs.id"),
+        nullable=False
+    )
+
+    job_seeker_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False
+    )
+
+    status: Mapped[str] = mapped_column(
+        String(20),
+        default="Pending",
         nullable=False
     )
