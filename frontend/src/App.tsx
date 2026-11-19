@@ -7,6 +7,8 @@ import JobList from "./pages/jobs/JobList";
 import JobDetails from "./pages/jobs/JobDetails";
 import CreateJob from "./pages/employer/CreateJob";
 import EditJob from "./pages/employer/EditJob";
+import ApplicationHistory from "./pages/jobs/ApplicationHistory";
+
 function App() {
   return (
     <Routes>
@@ -21,6 +23,7 @@ function App() {
       <Route path="/employer/edit-job/:id" element={<EditJob />} />
       <Route path="/jobs" element={<JobList />} />
       <Route path="/jobs/:id" element={<JobDetails />} />
+      <Route path="/applications" element={<ApplicationHistory />} />
     </Routes>
   );
 }
