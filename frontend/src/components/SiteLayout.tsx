@@ -85,6 +85,7 @@ export function SiteHeader() {
               <span className="nav-greeting" title={user.email}>Hi, {user.full_name}</span>
               {user.role === "employer" && <Link className="button" to="/employer/dashboard">Dashboard <span aria-hidden="true">↗</span></Link>}
               {user.role === "job_seeker" && <Link className="button" to="/jobs">Find jobs <span aria-hidden="true">↗</span></Link>}
+              {user.role === "job_seeker" && <Link to="/applications">My Applications</Link>}
               <button className="nav-logout" type="button" onClick={handleLogout}>Log out</button>
             </>
           ) : profileLoading ? (
