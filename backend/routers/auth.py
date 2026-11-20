@@ -1,37 +1,30 @@
-
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from models import User
 from schemas import UserRegister, UserResponse, UserLogin
-from security import hash_password, verify_password, create_access_token
-
-
-router = APIRouter(
-    prefix="/api/auth",
-    tags=["Authentication"]
+from security import (
+    hash_password,
+    verify_password,
+    verify_legacy_password,
+    create_access_token,
 )
+
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 @router.post(
-    "/register",
-    response_model=UserResponse,
-    status_code=status.HTTP_201_CREATED
+    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
 )
 def register_user(user: UserRegister):
 
     with SessionLocal() as db:
 
-        existing_user = db.query(User).filter(
-            User.email == user.email
-        ).first()
+        existing_user = db.query(User).filter(User.email == user.email).first()
 
         if existing_user:
-            raise HTTPException(
-                status_code=409,
-                detail="Email already registered"
-            )
+            raise HTTPException(status_code=409, detail="Email already registered")
 
         hashed_password = hash_password(user.password)
 
@@ -39,7 +32,7 @@ def register_user(user: UserRegister):
             full_name=user.full_name,
             email=user.email,
             password_hash=hashed_password,
-            role=user.role
+            role=user.role,
         )
 
         db.add(new_user)
@@ -50,10 +43,7 @@ def register_user(user: UserRegister):
 
         except IntegrityError:
             db.rollback()
-            raise HTTPException(
-                status_code=409,
-                detail="Email already registered"
-            )
+            raise HTTPException(status_code=409, detail="Email already registered")
 
         return new_user
 
@@ -63,36 +53,32 @@ def login_user(user: UserLogin):
 
     with SessionLocal() as db:
 
-        existing_user = db.query(User).filter(
-            User.email == user.email
-        ).first()
+        existing_user = db.query(User).filter(User.email == user.email).first()
 
         if not existing_user:
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password"
+            raise HTTPException(status_code=401, detail="Invalid email or password")
+
+        is_pepper_verified = verify_password(user.password, existing_user.password_hash)
+
+        is_legacy_verified = False
+
+        if not is_pepper_verified:
+            is_legacy_verified = verify_legacy_password(
+                user.password, existing_user.password_hash
             )
 
-        if not verify_password(
-            user.password,
-            existing_user.password_hash
-        ):
-            raise HTTPException(
-                status_code=401,
-                detail="Invalid email or password"
-            )
+        if not is_pepper_verified and not is_legacy_verified:
+            raise HTTPException(status_code=401, detail="Invalid email or password")
 
         if not existing_user.is_active:
-            raise HTTPException(
-                status_code=403,
-                detail="Account is inactive"
-            )
+            raise HTTPException(status_code=403, detail="Account is inactive")
+
+        if is_legacy_verified:
+            existing_user.password_hash = hash_password(user.password)
+            db.commit()
 
         access_token = create_access_token(
-            {"sub": str(existing_user.id)}
+            {"sub": str(existing_user.id), "role": existing_user.role}
         )
 
-        return {
-            "access_token": access_token,
-            "token_type": "bearer"
-        }
+        return {"access_token": access_token, "token_type": "bearer"}
