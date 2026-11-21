@@ -6,6 +6,8 @@ import os
 
 from dotenv import load_dotenv
 from pathlib import Path
+import hashlib
+import secrets
 
 # Load environment variables
 BASE_DIR = Path(__file__).resolve().parent
@@ -56,7 +58,12 @@ def create_access_token(data: dict) -> str:
 
     return encoded_jwt
 
+def generate_refresh_token() -> str:
+    return secrets.token_urlsafe(64)
 
+
+def hash_refresh_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 # Decode JWT access token
 def decode_access_token(token: str) -> dict:
     return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
