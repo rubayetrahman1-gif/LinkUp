@@ -22,26 +22,33 @@ export function SiteHeader() {
 
   useEffect(() => {
     let active = true;
-
     const loadProfile = async () => {
       const token = localStorage.getItem("access_token");
       if (!token) return;
+
       try {
         const profile = await getCurrentUser();
-        if (active && localStorage.getItem("access_token") === token) {
+
+        if (active && localStorage.getItem("access_token")) {
           setUser(profile);
           setProfileError("");
         }
       } catch (error) {
-        if (active && localStorage.getItem("access_token") === token) {
+        if (active) {
           setUser(null);
-          setProfileError(error instanceof Error ? error.message : "Could not load your profile.");
+
+          setProfileError(
+            localStorage.getItem("access_token")
+              ? error instanceof Error
+                ? error.message
+                : "Could not load your profile."
+              : ""
+          );
         }
       } finally {
-        if (active && localStorage.getItem("access_token") === token) setProfileLoading(false);
+        if (active) setProfileLoading(false);
       }
     };
-
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== "access_token" && event.key !== null) return;
       if (!event.newValue) {
@@ -62,13 +69,15 @@ export function SiteHeader() {
     };
   }, [retryCount]);
 
-  const handleLogout = () => {
-    logoutUser();
-    setUser(null);
-    setProfileError("");
-    navigate("/");
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } finally {
+      setUser(null);
+      setProfileError("");
+      navigate("/");
+    }
   };
-
   // const canBrowseJobs = user?.role === "job_seeker" || (!user && !profileLoading && !profileError);
 
   return (

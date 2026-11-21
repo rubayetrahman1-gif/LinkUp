@@ -33,8 +33,14 @@ export async function getCurrentUser(): Promise<User> {
     return apiRequest("/api/users/me");
 }
 
-// Logout user
-export function logoutUser(): void {
-    localStorage.removeItem("access_token");
-}
 
+// Logout user
+export async function logoutUser(): Promise<void> {
+    try {
+        await apiRequest("/api/auth/logout", {
+            method: "POST",
+        });
+    } finally {
+        localStorage.removeItem("access_token");
+    }
+}
