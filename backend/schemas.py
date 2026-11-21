@@ -41,7 +41,7 @@ class UserResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-    
+
 # Job Creation
 class JobCreate(BaseModel):
     title: str = Field(min_length=2, max_length=150)
@@ -85,3 +85,9 @@ class JobResponse(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+# Change Password
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password: str = Field(min_length=8)

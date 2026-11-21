@@ -3,8 +3,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
-from models import User
-from schemas import UserResponse, UserUpdate
+from models import User, RefreshSession
+from datetime import datetime, timezone
+from schemas import UserResponse, UserUpdate, PasswordChange
+from security import verify_password, verify_legacy_password, hash_password
 from dependencies import get_current_user, get_current_admin
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
@@ -68,3 +70,76 @@ def update_my_profile(
             )
 
         return user
+# Change current user's password
+@router.post("/me/change-password")
+def change_my_password(
+    password_data: PasswordChange,
+    current_user: User = Depends(get_current_user)
+):
+    with SessionLocal() as db:
+        user = db.query(User).filter(
+            User.id == current_user.id
+        ).first()
+
+        if not user:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
+        # Verify current password
+        is_current_password_valid = verify_password(
+            password_data.current_password,
+            user.password_hash
+        )
+
+        if not is_current_password_valid:
+            is_current_password_valid = verify_legacy_password(
+                password_data.current_password,
+                user.password_hash
+            )
+
+        if not is_current_password_valid:
+            raise HTTPException(
+                status_code=401,
+                detail="Current password is incorrect"
+            )
+
+        # Prevent using the same password
+        is_same_password = verify_password(
+            password_data.new_password,
+            user.password_hash
+        )
+
+        if not is_same_password:
+            is_same_password = verify_legacy_password(
+                password_data.new_password,
+                user.password_hash
+            )
+
+        if is_same_password:
+            raise HTTPException(
+                status_code=400,
+                detail="New password must be different from current password"
+            )
+
+        # Hash and save the new password
+        user.password_hash = hash_password(
+            password_data.new_password
+        )
+        now = datetime.now(timezone.utc)
+
+        active_sessions = db.query(RefreshSession).filter(
+           RefreshSession.user_id == user.id,
+           RefreshSession.revoked_at.is_(None)
+        ).all()
+
+        for session in active_sessions:
+            session.revoked_at = now
+
+
+        db.commit()
+
+        return {
+            "message": "Password changed successfully"
+        }
