@@ -3,6 +3,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 let refreshPromise: Promise<string | null> | null = null;
 let sessionCleanupPromise: Promise<void> | null = null;
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
 function clearSessionAndRedirect(): Promise<void> {
   if (!sessionCleanupPromise) {
     localStorage.removeItem("access_token");
@@ -28,7 +32,7 @@ function clearSessionAndRedirect(): Promise<void> {
 }
 
 
-async function parseResponse(response: Response): Promise<any> {
+async function parseResponse(response: Response): Promise<unknown> {
   if (response.status === 204) {
     return null;
   }
@@ -78,7 +82,9 @@ async function refreshAccessToken(): Promise<string | null> {
 
         const data = await parseResponse(response);
 
-        if (!data.access_token) return null;
+        if (!isRecord(data) || typeof data.access_token !== "string" || !data.access_token) {
+          return null;
+        }
 
         localStorage.setItem("access_token", data.access_token);
 
@@ -94,7 +100,10 @@ async function refreshAccessToken(): Promise<string | null> {
   return refreshPromise;
 }
 
-export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+export async function apiRequest<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
   const sendRequest = (token: string | null) => {
     const headers = new Headers(options.headers);
 
@@ -140,11 +149,14 @@ export async function apiRequest(endpoint: string, options: RequestInit = {}) {
     }
   }
 
- const data = await parseResponse(response);
+  const data = await parseResponse(response);
 
   if (!response.ok) {
-    throw new Error(data.detail || "Something went wrong");
+    const detail = isRecord(data) && typeof data.detail === "string"
+      ? data.detail
+      : "Something went wrong";
+    throw new Error(detail);
   }
 
-  return data;
+  return data as T;
 }

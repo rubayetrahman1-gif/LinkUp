@@ -13,7 +13,7 @@ import type {
 
 // Register a new user
 export async function registerUser(userData: UserRegister): Promise<User> {
-    return apiRequest("/api/auth/register", {
+    return apiRequest<User>("/api/auth/register", {
         method: "POST",
         body: JSON.stringify(userData),
     });
@@ -21,7 +21,7 @@ export async function registerUser(userData: UserRegister): Promise<User> {
 
 // Login user
 export async function loginUser(userData: UserLogin): Promise<LoginResponse> {
-    const data: LoginResponse = await apiRequest("/api/auth/login", {
+    const data = await apiRequest<LoginResponse>("/api/auth/login", {
         method: "POST",
         body: JSON.stringify(userData),
     });
@@ -33,11 +33,11 @@ export async function loginUser(userData: UserLogin): Promise<LoginResponse> {
 
 // Get logged-in user's profile
 export async function getCurrentUser(): Promise<User> {
-    return apiRequest("/api/users/me");
+    return apiRequest<User>("/api/users/me");
 }
 
 export async function updateCurrentUser(userData: UserUpdate): Promise<User> {
-    return apiRequest("/api/users/me", {
+    return apiRequest<User>("/api/users/me", {
         method: "PUT",
         body: JSON.stringify(userData),
     });
@@ -46,18 +46,18 @@ export async function updateCurrentUser(userData: UserUpdate): Promise<User> {
 export async function changeCurrentPassword(
     passwordData: PasswordChangeInput,
 ): Promise<{ message: string }> {
-    return apiRequest("/api/users/me/change-password", {
+    return apiRequest<{ message: string }>("/api/users/me/change-password", {
         method: "POST",
         body: JSON.stringify(passwordData),
     });
 }
 
 export async function getActiveSessions(): Promise<ActiveSession[]> {
-    return apiRequest("/api/auth/sessions");
+    return apiRequest<ActiveSession[]>("/api/auth/sessions");
 }
 
 export async function revokeSession(sessionId: number): Promise<{ message: string }> {
-    return apiRequest(`/api/auth/sessions/${sessionId}`, {
+    return apiRequest<{ message: string }>(`/api/auth/sessions/${sessionId}`, {
         method: "DELETE",
     });
 }
@@ -65,7 +65,7 @@ export async function revokeSession(sessionId: number): Promise<{ message: strin
 // Logout user
 export async function logoutUser(): Promise<void> {
     try {
-        await apiRequest("/api/auth/logout", {
+        await apiRequest<{ message: string }>("/api/auth/logout", {
             method: "POST",
         });
     } finally {
