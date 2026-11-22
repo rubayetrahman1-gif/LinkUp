@@ -1,6 +1,10 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
-let refreshPromise: Promise<string | null> | null = null;
+type RefreshResult =
+  | { accessToken: string }
+  | { failure: "rejected" | "unavailable" };
+
+let refreshPromise: Promise<RefreshResult> | null = null;
 let sessionCleanupPromise: Promise<void> | null = null;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -69,35 +73,38 @@ async function parseResponse(response: Response): Promise<unknown> {
 }
 
 
-async function refreshAccessToken(): Promise<string | null> {
-  if (!refreshPromise) {
-    refreshPromise = (async () => {
-      try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-          method: "POST",
-          credentials: "include",
-        });
+async function refreshAccessToken(): Promise<RefreshResult> {
+  if (refreshPromise) return refreshPromise;
 
-        if (!response.ok) return null;
+  const pendingRefresh = (async (): Promise<RefreshResult> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+      });
 
-        const data = await parseResponse(response);
+      if (response.status === 401) return { failure: "rejected" };
+      if (!response.ok) return { failure: "unavailable" };
 
-        if (!isRecord(data) || typeof data.access_token !== "string" || !data.access_token) {
-          return null;
-        }
+      const data = await parseResponse(response);
 
-        localStorage.setItem("access_token", data.access_token);
-
-        return data.access_token;
-      } catch {
-        return null;
+      if (!isRecord(data) || typeof data.access_token !== "string" || !data.access_token) {
+        return { failure: "unavailable" };
       }
-    })().finally(() => {
-      refreshPromise = null;
-    });
-  }
 
-  return refreshPromise;
+      localStorage.setItem("access_token", data.access_token);
+
+      return { accessToken: data.access_token };
+    } catch {
+      return { failure: "unavailable" };
+    }
+  })();
+
+  const sharedRefresh = pendingRefresh.finally(() => {
+    refreshPromise = null;
+  });
+  refreshPromise = sharedRefresh;
+  return sharedRefresh;
 }
 
 export async function apiRequest<T = unknown>(
@@ -134,18 +141,20 @@ export async function apiRequest<T = unknown>(
   ];
 
   if (response.status === 401 && !excludedEndpoints.includes(endpoint)) {
-    const newToken = await refreshAccessToken();
+    const refreshResult = await refreshAccessToken();
 
-    if (newToken) {
-      response = await sendRequest(newToken);
+    if ("accessToken" in refreshResult) {
+      response = await sendRequest(refreshResult.accessToken);
 
       if (response.status === 401) {
         await clearSessionAndRedirect();
         throw new Error("Session expired. Please log in again.");
       }
-    } else {
+    } else if (refreshResult.failure === "rejected") {
       await clearSessionAndRedirect();
       throw new Error("Session expired. Please log in again.");
+    } else {
+      throw new Error("Could not refresh your session. Please try again.");
     }
   }
 
