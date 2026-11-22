@@ -19,12 +19,12 @@ export interface ApplicationHistoryItem {
 export async function applyForJob(
   jobId: number
 ): Promise<ApplicationResponse> {
-  return apiRequest(`/api/jobs/${jobId}/applications`, {
+  return apiRequest<ApplicationResponse>(`/api/jobs/${jobId}/applications`, {
     method: "POST",
   });
 }
 
 // Get current Job Seeker's application history
 export async function getMyApplications(): Promise<ApplicationHistoryItem[]> {
-  return apiRequest("/api/applications/my");
+  return apiRequest<ApplicationHistoryItem[]>("/api/applications/my");
 }
