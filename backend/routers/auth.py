@@ -1,7 +1,14 @@
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    status,
+    Cookie,
+    Depends,
+    Response,
+    Request,
+)
 import os
 from datetime import datetime, timedelta, timezone
-
-from fastapi import APIRouter, HTTPException, status, Cookie, Depends, Response
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 from dependencies import get_current_user
@@ -16,6 +23,7 @@ from security import (
     generate_refresh_token,
     hash_refresh_token,
 )
+
 
 MAX_FAILED_LOGIN_ATTEMPTS = 8
 LOGIN_LOCKOUT_MINUTES = 15
@@ -71,7 +79,10 @@ def register_user(user: UserRegister):
 
 
 @router.post("/login")
-def login_user(user: UserLogin):
+def login_user(
+    user: UserLogin,
+    request: Request,
+):
     with SessionLocal() as db:
 
         existing_user = (
@@ -192,6 +203,7 @@ def login_user(user: UserLogin):
             user_id=existing_user.id,
             token_hash=refresh_token_hash,
             expires_at=expires_at,
+            user_agent=request.headers.get("user-agent"),
         )
 
         db.add(refresh_session)
@@ -219,6 +231,7 @@ def login_user(user: UserLogin):
 
 @router.post("/refresh")
 def refresh_access_token(
+    request: Request,
     response: Response,
     refresh_token: str | None = Cookie(default=None),
 ):
@@ -249,12 +262,18 @@ def refresh_access_token(
 
         now = datetime.now(timezone.utc)
 
-        if refresh_session.expires_at <= now:
+        expires_at = refresh_session.expires_at
+
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(
+                tzinfo=timezone.utc
+            )
+
+        if expires_at <= now:
             raise HTTPException(
                 status_code=401,
                 detail="Refresh token has expired",
             )
-
         existing_user = (
             db.query(User).filter(User.id == refresh_session.user_id).first()
         )
@@ -279,6 +298,7 @@ def refresh_access_token(
             user_id=existing_user.id,
             token_hash=new_refresh_token_hash,
             expires_at=new_expires_at,
+            user_agent=request.headers.get("user-agent"),
         )
 
         db.add(new_session)
@@ -349,7 +369,9 @@ def get_user_sessions(
     refresh_token: str | None = Cookie(default=None),
 ):
     now = datetime.now(timezone.utc)
-    current_token_hash = hash_refresh_token(refresh_token) if refresh_token else None
+    current_token_hash = (
+    hash_refresh_token(refresh_token) if refresh_token else None
+    )
 
     with SessionLocal() as db:
         sessions = (

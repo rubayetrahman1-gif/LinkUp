@@ -1,92 +1,150 @@
-
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "";
 
 let refreshPromise: Promise<string | null> | null = null;
+let sessionCleanupPromise: Promise<void> | null = null;
 
-async function refreshAccessToken(): Promise<string | null> {
-    if (!refreshPromise) {
-        refreshPromise = (async () => {
-            try {
-                const response = await fetch(
-                    `${API_BASE_URL}/api/auth/refresh`,
-                    {
-                        method: "POST",
-                        credentials: "include",
-                    }
-                );
+function clearSessionAndRedirect(): Promise<void> {
+  if (!sessionCleanupPromise) {
+    localStorage.removeItem("access_token");
+    sessionCleanupPromise = (async () => {
+      if (typeof window === "undefined") return;
 
-                if (!response.ok) return null;
+      const cleanupFailed = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      }).then(
+        (response) => !response.ok,
+        () => true,
+      );
 
-                const data = await response.json();
+      const cleanupQuery = cleanupFailed ? "&cleanup=failed" : "";
+      window.location.replace(
+        `/auth/login?reason=session-expired${cleanupQuery}`,
+      );
+    })();
+  }
 
-                if (!data.access_token) return null;
-
-                localStorage.setItem("access_token", data.access_token);
-
-                return data.access_token;
-            } catch {
-                return null;
-            }
-        })().finally(() => {
-            refreshPromise = null;
-        });
-    }
-
-    return refreshPromise;
+  return sessionCleanupPromise;
 }
 
-export async function apiRequest(
-    endpoint: string,
-    options: RequestInit = {}
-) {
-    const sendRequest = (token: string | null) => {
-        const headers = new Headers(options.headers);
 
-        headers.set("Content-Type", "application/json");
+async function parseResponse(response: Response): Promise<any> {
+  if (response.status === 204) {
+    return null;
+  }
 
-        if (token) {
-            headers.set("Authorization", `Bearer ${token}`);
-        } else {
-            headers.delete("Authorization");
-        }
+  const contentType = response.headers.get("content-type") ?? "";
 
-        return fetch(`${API_BASE_URL}${endpoint}`, {
-            ...options,
-            credentials: "include",
-            headers,
-        });
+  if (contentType.includes("json")) {
+    try {
+      return await response.json();
+    } catch {
+      if (!response.ok) {
+        return {
+          detail: `Request failed (${response.status}). The server returned invalid JSON.`,
+        };
+      }
+
+      throw new Error("The server returned invalid JSON.");
+    }
+  }
+
+  const responseText = await response.text();
+
+  if (!response.ok) {
+    return {
+      detail: `Request failed (${response.status}). The server returned a non-JSON response.`,
     };
+  }
 
-    const token = localStorage.getItem("access_token");
+  if (!responseText.trim()) {
+    return null;
+  }
 
-    let response = await sendRequest(token);
+  throw new Error("The server returned an unexpected non-JSON response.");
+}
 
-    const excludedEndpoints = [
-        "/api/auth/login",
-        "/api/auth/register",
-        "/api/auth/refresh",
-        "/api/auth/logout",
-    ];
 
-    if (
-        response.status === 401 &&
-        !excludedEndpoints.includes(endpoint)
-    ) {
-        const newToken = await refreshAccessToken();
+async function refreshAccessToken(): Promise<string | null> {
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        });
 
-        if (newToken) {
-            response = await sendRequest(newToken);
-        } else {
-            localStorage.removeItem("access_token");
-            throw new Error("Session expired. Please log in again.");
-        }
+        if (!response.ok) return null;
+
+        const data = await parseResponse(response);
+
+        if (!data.access_token) return null;
+
+        localStorage.setItem("access_token", data.access_token);
+
+        return data.access_token;
+      } catch {
+        return null;
+      }
+    })().finally(() => {
+      refreshPromise = null;
+    });
+  }
+
+  return refreshPromise;
+}
+
+export async function apiRequest(endpoint: string, options: RequestInit = {}) {
+  const sendRequest = (token: string | null) => {
+    const headers = new Headers(options.headers);
+
+    headers.set("Content-Type", "application/json");
+
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    } else {
+      headers.delete("Authorization");
     }
 
-    const data = await response.json();
+    return fetch(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      credentials: "include",
+      headers,
+    });
+  };
 
-    if (!response.ok) {
-        throw new Error(data.detail || "Something went wrong");
+  const token = localStorage.getItem("access_token");
+
+  let response = await sendRequest(token);
+
+  const excludedEndpoints = [
+    "/api/auth/login",
+    "/api/auth/register",
+    "/api/auth/refresh",
+    "/api/auth/logout",
+  ];
+
+  if (response.status === 401 && !excludedEndpoints.includes(endpoint)) {
+    const newToken = await refreshAccessToken();
+
+    if (newToken) {
+      response = await sendRequest(newToken);
+
+      if (response.status === 401) {
+        await clearSessionAndRedirect();
+        throw new Error("Session expired. Please log in again.");
+      }
+    } else {
+      await clearSessionAndRedirect();
+      throw new Error("Session expired. Please log in again.");
     }
+  }
 
-    return data;
+ const data = await parseResponse(response);
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Something went wrong");
+  }
+
+  return data;
 }

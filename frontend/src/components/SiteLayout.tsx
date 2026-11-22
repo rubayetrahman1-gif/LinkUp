@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useRef } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser, logoutUser } from "../services/authService";
@@ -19,6 +20,8 @@ export function SiteHeader() {
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(() => Boolean(localStorage.getItem("access_token")));
   const [retryCount, setRetryCount] = useState(0);
+  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -69,12 +72,36 @@ export function SiteHeader() {
     };
   }, [retryCount]);
 
+  useEffect(() => {
+    if (!profileMenuOpen) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      if (
+        event.target instanceof Node &&
+        !profileMenuRef.current?.contains(event.target)
+      ) {
+        setProfileMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setProfileMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [profileMenuOpen]);
+
   const handleLogout = async () => {
     try {
       await logoutUser();
     } finally {
       setUser(null);
       setProfileError("");
+      setProfileMenuOpen(false);
       navigate("/");
     }
   };
@@ -91,11 +118,42 @@ export function SiteHeader() {
         <div className="nav-actions">
           {user ? (
             <>
-              <span className="nav-greeting" title={user.email}>Hi, {user.full_name}</span>
               {user.role === "employer" && <Link className="button" to="/employer/dashboard">Dashboard <span aria-hidden="true">↗</span></Link>}
               {user.role === "job_seeker" && <Link className="button" to="/jobs">Find jobs <span aria-hidden="true">↗</span></Link>}
               {user.role === "job_seeker" && <Link to="/applications">My Applications</Link>}
-              <button className="nav-logout" type="button" onClick={handleLogout}>Log out</button>
+              <div className="profile-menu" ref={profileMenuRef}>
+                <button
+                  className="profile-menu-trigger"
+                  type="button"
+                  aria-label={`Open profile menu for ${user.full_name}`}
+                  aria-expanded={profileMenuOpen}
+                  aria-controls="profile-menu-dropdown"
+                  onClick={() => setProfileMenuOpen((isOpen) => !isOpen)}
+                >
+                  <svg className="profile-avatar" viewBox="0 0 40 40" aria-hidden="true">
+                    <circle cx="20" cy="14" r="7" />
+                    <path d="M7 36c1.7-7.5 6.1-11.2 13-11.2S31.3 28.5 33 36" />
+                  </svg>
+                  <span className="profile-menu-caret" aria-hidden="true">▾</span>
+                </button>
+                {profileMenuOpen && (
+                  <div className="profile-menu-dropdown" id="profile-menu-dropdown">
+                    <p className="profile-menu-name" title={user.email}>{user.full_name}</p>
+                    <Link to="/settings" onClick={() => setProfileMenuOpen(false)}>
+                      Account settings
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProfileMenuOpen(false);
+                        void handleLogout();
+                      }}
+                    >
+                      Log out
+                    </button>
+                  </div>
+                )}
+              </div>
             </>
           ) : profileLoading ? (
             <span className="nav-profile-status" role="status">Loading profile…</span>

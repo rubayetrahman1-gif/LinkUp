@@ -5,7 +5,10 @@ import type {
     UserRegister,
     UserLogin,
     User,
+    ActiveSession,
     LoginResponse,
+    PasswordChangeInput,
+    UserUpdate,
 } from "../types/auth";
 
 // Register a new user
@@ -33,6 +36,31 @@ export async function getCurrentUser(): Promise<User> {
     return apiRequest("/api/users/me");
 }
 
+export async function updateCurrentUser(userData: UserUpdate): Promise<User> {
+    return apiRequest("/api/users/me", {
+        method: "PUT",
+        body: JSON.stringify(userData),
+    });
+}
+
+export async function changeCurrentPassword(
+    passwordData: PasswordChangeInput,
+): Promise<{ message: string }> {
+    return apiRequest("/api/users/me/change-password", {
+        method: "POST",
+        body: JSON.stringify(passwordData),
+    });
+}
+
+export async function getActiveSessions(): Promise<ActiveSession[]> {
+    return apiRequest("/api/auth/sessions");
+}
+
+export async function revokeSession(sessionId: number): Promise<{ message: string }> {
+    return apiRequest(`/api/auth/sessions/${sessionId}`, {
+        method: "DELETE",
+    });
+}
 
 // Logout user
 export async function logoutUser(): Promise<void> {

@@ -54,10 +54,16 @@ function EmployerDashboard() {
     }
   };
 
-  const handleLogout = () => {
-    logoutUser();
+const handleLogout = async () => {
+  try {
+    await logoutUser();
+  } catch (error) {
+    console.error("Logout request failed:", error);
+  } finally {
     navigate("/");
-  };
+  }
+};
+
 
   return (
     <main className="employer-portal">
@@ -69,6 +75,7 @@ function EmployerDashboard() {
         <nav className="portal-navigation" aria-label="Employer dashboard">
           <a className="portal-nav-item active" href="#my-jobs" aria-current="page"><span aria-hidden="true">▣</span> My Jobs</a>
           <Link className="portal-nav-item" to="/jobs"><span aria-hidden="true">⌕</span> Browse jobs</Link>
+          <Link className="portal-nav-item" to="/settings">Account settings</Link>
         </nav>
 
         <div className="portal-account">

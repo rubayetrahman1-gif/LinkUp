@@ -19,6 +19,25 @@ export interface User {
     created_at: string;
 }
 
+export interface UserUpdate {
+    full_name: string;
+    email: string;
+}
+
+export interface PasswordChangeInput {
+    current_password: string;
+    new_password: string;
+}
+
+export interface ActiveSession {
+    id: number;
+    created_at: string;
+    expires_at: string;
+    last_used_at: string | null;
+    user_agent: string | null;
+    is_current: boolean;
+}
+
 export interface LoginResponse {
     access_token: string;
     token_type: string;

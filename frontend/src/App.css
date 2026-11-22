@@ -899,6 +899,16 @@
 .nav-profile-status { color: var(--text-muted); font-size: 12px; }
 .nav-profile-error { color: #a23636; }
 
+.profile-menu { position: relative; }
+.profile-menu-trigger { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border: 0; border-radius: 24px; background: transparent; color: var(--text-strong); cursor: pointer; }
+.profile-menu-trigger:hover, .profile-menu-trigger:focus-visible { background: #f0f2f5; outline: none; }
+.profile-avatar { width: 38px; height: 38px; padding: 7px; overflow: visible; border-radius: 50%; background: #e9edf5; fill: #69758b; }
+.profile-menu-caret { color: var(--text-muted); font-size: 12px; }
+.profile-menu-dropdown { position: absolute; top: calc(100% + 10px); right: 0; z-index: 20; display: grid; width: min(280px, calc(100vw - 32px)); gap: 4px; padding: 8px; border: 1px solid var(--border); border-radius: 14px; background: #fff; box-shadow: 0 14px 36px rgba(30, 34, 52, 0.16); }
+.profile-menu-name { overflow: hidden; margin: 0; padding: 12px; border-bottom: 1px solid var(--border); color: var(--text-strong); font-size: 14px; font-weight: 750; text-overflow: ellipsis; white-space: nowrap; }
+.nav-actions .profile-menu-dropdown a, .profile-menu-dropdown button { display: block; width: 100%; padding: 11px 12px; border: 0; border-radius: 9px; background: transparent; color: var(--text); cursor: pointer; font: inherit; font-size: 13px; font-weight: 650; text-align: left; text-decoration: none; }
+.nav-actions .profile-menu-dropdown a:hover, .profile-menu-dropdown button:hover { background: #f3f5f9; color: var(--accent); }
+
 .site-footer {
   padding: 27px 0;
   border-top: 1px solid var(--border);

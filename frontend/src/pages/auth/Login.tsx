@@ -9,7 +9,13 @@ import { Brand } from "../../components/SiteLayout";
 function Login() {
   const navigate = useNavigate();
   const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
   const registered = location.state && typeof location.state === "object" && "registered" in location.state && location.state.registered === true;
+  const passwordChanged = location.state && typeof location.state === "object" && "passwordChanged" in location.state && location.state.passwordChanged === true;
+  const sessionRevoked = location.state && typeof location.state === "object" && "sessionRevoked" in location.state && location.state.sessionRevoked === true;
+  const cleanupWarning = location.state && typeof location.state === "object" && "cleanupWarning" in location.state && location.state.cleanupWarning === true;
+  const sessionExpired = searchParams.get("reason") === "session-expired";
+  const expiredCleanupWarning = searchParams.get("cleanup") === "failed";
   const [formData, setFormData] = useState<UserLogin>({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -58,6 +64,11 @@ function Login() {
           <h2>Sign in to LinkUp</h2>
           <p className="auth-intro">Pick up right where your next opportunity begins.</p>
           {registered && <p className="status-success" role="status">Your account is ready. Sign in to continue.</p>}
+          {passwordChanged && <p className="status-success" role="status">Your password was changed. Sign in again with your new password.</p>}
+          {sessionRevoked && <p className="status-success" role="status">This session was revoked. Sign in again to continue.</p>}
+          {passwordChanged && cleanupWarning && <p className="status-message" role="alert">All sessions were revoked, but the browser could not clear the old session cookie. Signing in again will replace it.</p>}
+          {sessionExpired && <p className="status-message" role="alert">Your session expired and could not be restored. Please sign in again.</p>}
+          {sessionExpired && expiredCleanupWarning && <p className="status-message" role="alert">The old session cookie could not be cleared because the server could not be reached. It will be rejected if reused.</p>}
           <form className="auth-form" onSubmit={handleSubmit}>
             <div className="form-field">
               <label htmlFor="login-email">Email address</label>
