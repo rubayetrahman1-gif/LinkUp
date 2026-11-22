@@ -33,6 +33,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 REFRESH_TOKEN_EXPIRE_DAYS = int(os.getenv("REFRESH_TOKEN_EXPIRE_DAYS", "7"))
 
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
+COOKIE_SAMESITE = "none" if COOKIE_SECURE else "lax"
 
 
 @router.post(
@@ -221,7 +222,7 @@ def login_user(
             value=refresh_token,
             httponly=True,
             secure=COOKIE_SECURE,
-            samesite="lax",
+            samesite=COOKIE_SAMESITE,
             max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
             path="/api/auth",
         )
@@ -318,7 +319,7 @@ def refresh_access_token(
             value=new_refresh_token,
             httponly=True,
             secure=COOKIE_SECURE,
-            samesite="lax",
+            samesite=COOKIE_SAMESITE,
             max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
             path="/api/auth",
         )
@@ -356,7 +357,7 @@ def logout_user(
         key="refresh_token",
         httponly=True,
         secure=COOKIE_SECURE,
-        samesite="lax",
+        samesite=COOKIE_SAMESITE,
         path="/api/auth",
     )
 
@@ -434,7 +435,7 @@ def revoke_user_session(
                 key="refresh_token",
                 httponly=True,
                 secure=COOKIE_SECURE,
-                samesite="lax",
+                samesite=COOKIE_SAMESITE,
                 path="/api/auth",
             )
 
