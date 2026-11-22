@@ -8,6 +8,7 @@ import JobDetails from "./pages/jobs/JobDetails";
 import CreateJob from "./pages/employer/CreateJob";
 import EditJob from "./pages/employer/EditJob";
 import ApplicationHistory from "./pages/jobs/ApplicationHistory";
+import ProfileSettings from "./pages/settings/ProfileSettings";
 
 function App() {
   return (
@@ -24,6 +25,7 @@ function App() {
       <Route path="/jobs" element={<JobList />} />
       <Route path="/jobs/:id" element={<JobDetails />} />
       <Route path="/applications" element={<ApplicationHistory />} />
+      <Route path="/settings" element={<ProfileSettings />} />
     </Routes>
   );
 }
