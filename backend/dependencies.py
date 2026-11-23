@@ -4,6 +4,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from database import SessionLocal
 from models import User
+from rbac import Permission, has_permission
 from security import decode_access_token
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -52,7 +53,7 @@ def get_current_user(
 
 
 def get_current_admin(current_user: User = Depends(get_current_user)):
-    if current_user.role != "admin":
+    if not has_permission(current_user, Permission.READ_ALL_USERS):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Admin access required"
         )
@@ -61,7 +62,7 @@ def get_current_admin(current_user: User = Depends(get_current_user)):
 
 
 def get_current_employer(current_user: User = Depends(get_current_user)):
-    if current_user.role != "employer":
+    if not has_permission(current_user, Permission.CREATE_JOB):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Employer access required"
         )
@@ -70,7 +71,7 @@ def get_current_employer(current_user: User = Depends(get_current_user)):
 
 
 def get_current_job_seeker(current_user: User = Depends(get_current_user)):
-    if current_user.role != "job_seeker":
+    if not has_permission(current_user, Permission.APPLY_FOR_JOB):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, detail="Job Seeker access required"
         )

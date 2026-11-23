@@ -7,7 +7,7 @@ from models import User, RefreshSession
 from datetime import datetime, timezone
 from schemas import UserResponse, UserUpdate, PasswordChange
 from security import verify_password, verify_legacy_password, hash_password
-from dependencies import get_current_user, get_current_admin
+from rbac import Permission, require_permission
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/api/users", tags=["Users"])
 # Get all users (Admin only)
 @router.get("", response_model=list[UserResponse])
 def get_all_users(
-    admin_user: User = Depends(get_current_admin)
+    admin_user: User = Depends(require_permission(Permission.READ_ALL_USERS))
 ):
     with SessionLocal() as db:
         users = db.query(User).order_by(User.id).all()
@@ -25,7 +25,7 @@ def get_all_users(
 # Get current user's profile
 @router.get("/me", response_model=UserResponse)
 def read_my_profile(
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission(Permission.READ_PROFILE))
 ):
     return current_user
 
@@ -34,7 +34,7 @@ def read_my_profile(
 @router.put("/me", response_model=UserResponse)
 def update_my_profile(
     user_data: UserUpdate,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission(Permission.UPDATE_PROFILE))
 ):
     with SessionLocal() as db:
         user = db.query(User).filter(
@@ -74,7 +74,7 @@ def update_my_profile(
 @router.post("/me/change-password")
 def change_my_password(
     password_data: PasswordChange,
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(require_permission(Permission.CHANGE_PASSWORD))
 ):
     with SessionLocal() as db:
         user = db.query(User).filter(

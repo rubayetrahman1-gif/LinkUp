@@ -5,9 +5,11 @@ import { getCurrentUser, loginUser } from "../../services/authService";
 import type { User, UserLogin } from "../../types/auth";
 import heroImage from "../../assets/hero.png";
 import { Brand } from "../../components/SiteLayout";
+import { useAuth } from "../../context/useAuth";
 
 function Login() {
   const navigate = useNavigate();
+  const { setUser } = useAuth();
   const location = useLocation();
   const searchParams = new URLSearchParams(location.search);
   const registered = location.state && typeof location.state === "object" && "registered" in location.state && location.state.registered === true;
@@ -28,13 +30,14 @@ function Login() {
     try {
       await loginUser(formData);
       const user: User = await getCurrentUser();
+      setUser(user);
 
       if (user.role === "employer") {
         navigate("/");
       } else if (user.role === "job_seeker") {
         navigate("/");
       } else if (user.role === "admin") {
-        setError("Admin dashboard is not available yet.");
+        navigate("/admin");
       } else {
         setError("This account has an unsupported role.");
       }

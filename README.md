@@ -46,6 +46,24 @@ vercel dev -L
 
 > Add new Python packages to `backend/requirements.txt`.
 
+## Access control and applications
+
+The backend centralizes role permissions in `backend/rbac.py`. Employers can
+manage their own job postings and review applications to those jobs; job
+seekers can apply and view only their own application history; admins can
+access the admin user listing. Protected frontend routes restore the current
+user through the existing API client, which retains access-token refresh
+behavior.
+
+Employers can retrieve their applications from `GET /api/applications/employer`
+and update an owned application's status with
+`PATCH /api/applications/{application_id}/status`. Applicant details are only
+included for the employer that owns the associated job. Allowed statuses are
+`Pending`, `Under Review`, `Accepted`, and `Rejected`; attempts to access
+another employer's application return `404`.
+
+Run backend tests from `backend/` with `python -m pytest -q`.
+
 ## Class exercise
 
 Send an ID, name and email from React to FastAPI and show the reply.

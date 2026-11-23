@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser, logoutUser } from "../services/authService";
 import type { User } from "../types/auth";
+import { useAuth } from "../context/useAuth";
 
 export function Brand() {
   return (
@@ -16,6 +17,7 @@ export function Brand() {
 
 export function SiteHeader() {
   const navigate = useNavigate();
+  const { setUser: setAuthenticatedUser } = useAuth();
   const [user, setUser] = useState<User | null>(null);
   const [profileError, setProfileError] = useState("");
   const [profileLoading, setProfileLoading] = useState(() => Boolean(localStorage.getItem("access_token")));
@@ -100,6 +102,7 @@ export function SiteHeader() {
       await logoutUser();
     } finally {
       setUser(null);
+      setAuthenticatedUser(null);
       setProfileError("");
       setProfileMenuOpen(false);
       navigate("/");
@@ -120,6 +123,7 @@ export function SiteHeader() {
             <>
               {user.role === "employer" && <Link className="button" to="/employer/dashboard">Dashboard <span aria-hidden="true">↗</span></Link>}
               {user.role === "job_seeker" && <Link className="button" to="/jobs">Find jobs <span aria-hidden="true">↗</span></Link>}
+              {user.role === "admin" && <Link className="button" to="/admin">Admin dashboard <span aria-hidden="true">↗</span></Link>}
               {user.role === "job_seeker" && <Link to="/applications">My Applications</Link>}
               <div className="profile-menu" ref={profileMenuRef}>
                 <button

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from database import SessionLocal
 from models import User, Job
 from schemas import JobCreate, JobUpdate, JobResponse
-from dependencies import  get_current_employer
+from rbac import Permission, require_permission
 
 router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/api/jobs", tags=["Jobs"])
 )
 def create_job(
     job_data: JobCreate,
-    current_user: User = Depends(get_current_employer)
+    current_user: User = Depends(require_permission(Permission.CREATE_JOB))
 ):
     with SessionLocal() as db:
         new_job = Job(
@@ -48,7 +48,7 @@ def get_all_jobs():
 # Get all jobs posted by the current employer
 @router.get("/my-jobs", response_model=list[JobResponse])
 def get_my_jobs(
-    current_user: User = Depends(get_current_employer)
+    current_user: User = Depends(require_permission(Permission.READ_OWN_JOBS))
 ):
     with SessionLocal() as db:
         jobs = db.query(Job).filter(
@@ -80,7 +80,7 @@ def get_job_by_id(job_id: int):
 def update_job(
     job_id: int,
     job_data: JobUpdate,
-    current_user: User = Depends(get_current_employer)
+    current_user: User = Depends(require_permission(Permission.UPDATE_OWN_JOBS))
 ):
     with SessionLocal() as db:
         job = db.query(Job).filter(
@@ -114,7 +114,7 @@ def update_job(
 @router.delete("/{job_id}")
 def delete_job(
     job_id: int,
-    current_user: User = Depends(get_current_employer)
+    current_user: User = Depends(require_permission(Permission.DELETE_OWN_JOBS))
 ):
     with SessionLocal() as db:
         job = db.query(Job).filter(
