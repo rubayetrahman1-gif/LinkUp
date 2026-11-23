@@ -2,21 +2,39 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import { PublicLayout } from "../../components/SiteLayout";
+import { useAuth } from "../../context/useAuth";
+import { formatDateTime } from "../../dateTime";
 import {
+  banAdminUser,
   getAdminUserDetails,
+  revokeAdminUserSession,
+  unbanAdminUser,
+  updateAdminUserRole,
+  type AdminRole,
   type AdminUserDetails as AdminUserDetailsData,
 } from "../../services/adminService";
 
+const ADMIN_ROLES: AdminRole[] = ["job_seeker", "employer", "admin"];
+
 function AdminUserDetails() {
   const { id } = useParams<{ id: string }>();
+  const { user: currentUser } = useAuth();
   const [details, setDetails] = useState<AdminUserDetailsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [banReason, setBanReason] = useState("");
+  const [selectedRole, setSelectedRole] = useState<AdminRole>("job_seeker");
+  const [pendingAction, setPendingAction] = useState("");
+  const [reloadCount, setReloadCount] = useState(0);
 
   useEffect(() => {
     let active = true;
 
     const loadDetails = async () => {
+      setLoading(true);
+      setError("");
       if (!id || !/^[1-9]\d*$/.test(id)) {
         setError("This user link is invalid.");
         setLoading(false);
@@ -25,7 +43,10 @@ function AdminUserDetails() {
 
       try {
         const data = await getAdminUserDetails(Number(id));
-        if (active) setDetails(data);
+        if (active) {
+          setDetails(data);
+          setSelectedRole(data.user.role);
+        }
       } catch (requestError) {
         if (active) {
           setError(
@@ -43,7 +64,30 @@ function AdminUserDetails() {
     return () => {
       active = false;
     };
-  }, [id]);
+  }, [id, reloadCount]);
+
+  const runAction = async (
+    action: string,
+    operation: () => Promise<void>,
+    message: string,
+  ) => {
+    setPendingAction(action);
+    setActionError("");
+    setSuccess("");
+    try {
+      await operation();
+      setSuccess(message);
+      setReloadCount((count) => count + 1);
+    } catch (requestError) {
+      setActionError(
+        requestError instanceof Error
+          ? requestError.message
+          : "The requested account action failed.",
+      );
+    } finally {
+      setPendingAction("");
+    }
+  };
 
   return (
     <PublicLayout>
@@ -72,6 +116,11 @@ function AdminUserDetails() {
           )}
           {!loading && !error && details && (
             <>
+              {(actionError || success) && (
+                <div className={actionError ? "empty-state" : "admin-action-success"} role={actionError ? "alert" : "status"}>
+                  {actionError || success}
+                </div>
+              )}
               <section className="admin-detail-section" aria-labelledby="account-details-heading">
                 <div className="panel-heading">
                   <h2 id="account-details-heading">Account information</h2>
@@ -80,17 +129,139 @@ function AdminUserDetails() {
                   <div><dt>Name</dt><dd>{details.user.full_name}</dd></div>
                   <div><dt>Email</dt><dd>{details.user.email}</dd></div>
                   <div><dt>Role</dt><dd>{details.user.role.replaceAll("_", " ")}</dd></div>
-                  <div><dt>Status</dt><dd>{details.user.is_active ? "Active" : "Inactive"}</dd></div>
-                  <div><dt>Joined</dt><dd>{new Date(details.user.created_at).toLocaleString()}</dd></div>
+                  <div>
+                    <dt>Status</dt>
+                    <dd>
+                      {details.user.is_banned
+                        ? "Banned"
+                        : details.user.is_active
+                          ? "Active"
+                          : "Inactive"}
+                    </dd>
+                  </div>
+                  {details.user.is_banned && (
+                    <>
+                      <div><dt>Ban reason</dt><dd>{details.user.ban_reason || "Not recorded"}</dd></div>
+                      <div>
+                        <dt>Banned at</dt>
+                        <dd>
+                          {details.user.banned_at
+                            ? formatDateTime(details.user.banned_at)
+                            : "Not recorded"}
+                        </dd>
+                      </div>
+                    </>
+                  )}
+                  <div><dt>Joined</dt><dd>{formatDateTime(details.user.created_at)}</dd></div>
                   <div>
                     <dt>Login lock</dt>
                     <dd>
                       {details.user.locked_until
-                        ? new Date(details.user.locked_until).toLocaleString()
+                        ? formatDateTime(details.user.locked_until)
                         : "Not locked"}
                     </dd>
                   </div>
                 </dl>
+              </section>
+
+              <section className="admin-detail-section" aria-labelledby="user-administration-heading">
+                <div className="panel-heading">
+                  <h2 id="user-administration-heading">User administration</h2>
+                </div>
+                <div className="admin-user-actions">
+                  <form
+                    className="admin-action-form"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void runAction(
+                        "role",
+                        () => updateAdminUserRole(details.user.id, selectedRole),
+                        "User role updated.",
+                      );
+                    }}
+                  >
+                    <label className="form-field">
+                      <span>Account role</span>
+                      <select
+                        value={selectedRole}
+                        onChange={(event) => setSelectedRole(event.target.value as AdminRole)}
+                        disabled={pendingAction !== "" || currentUser?.id === details.user.id}
+                      >
+                        {ADMIN_ROLES.map((role) => (
+                          <option key={role} value={role}>
+                            {role.replaceAll("_", " ")}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      className="button"
+                      type="submit"
+                      disabled={
+                        pendingAction !== "" ||
+                        selectedRole === details.user.role ||
+                        currentUser?.id === details.user.id
+                      }
+                    >
+                      Update role
+                    </button>
+                  </form>
+
+                  {details.user.is_banned ? (
+                    <button
+                      className="button button-secondary"
+                      type="button"
+                      disabled={pendingAction !== ""}
+                      onClick={() =>
+                        void runAction(
+                          "unban",
+                          () => unbanAdminUser(details.user.id),
+                          "User unbanned.",
+                        )
+                      }
+                    >
+                      {pendingAction === "unban" ? "Unbanning..." : "Unban user"}
+                    </button>
+                  ) : (
+                    <form
+                      className="admin-action-form admin-ban-form"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        void runAction(
+                          "ban",
+                          () => banAdminUser(details.user.id, banReason),
+                          "User banned and active sessions revoked.",
+                        );
+                      }}
+                    >
+                      <label className="form-field">
+                        <span>Ban reason (required)</span>
+                        <input
+                          value={banReason}
+                          onChange={(event) => setBanReason(event.target.value)}
+                          minLength={5}
+                          maxLength={500}
+                          required
+                          disabled={pendingAction !== "" || currentUser?.id === details.user.id}
+                        />
+                      </label>
+                      <button
+                        className="button"
+                        type="submit"
+                        disabled={
+                          pendingAction !== "" ||
+                          banReason.trim().length < 5 ||
+                          currentUser?.id === details.user.id
+                        }
+                      >
+                        {pendingAction === "ban" ? "Banning..." : "Ban user"}
+                      </button>
+                    </form>
+                  )}
+                  {currentUser?.id === details.user.id && (
+                    <p className="admin-muted">You cannot change your own role or ban your own account.</p>
+                  )}
+                </div>
               </section>
 
               <section className="admin-detail-section" aria-labelledby="account-activity-heading">
@@ -104,7 +275,7 @@ function AdminUserDetails() {
                         <span>{activity.description}</span>
                         <time dateTime={activity.occurred_at ?? undefined}>
                           {activity.occurred_at
-                            ? new Date(activity.occurred_at).toLocaleString()
+                            ? formatDateTime(activity.occurred_at)
                             : "Time not tracked"}
                         </time>
                       </li>
@@ -129,20 +300,39 @@ function AdminUserDetails() {
                           <th scope="col">Last used</th>
                           <th scope="col">Expires</th>
                           <th scope="col">Status</th>
+                          <th scope="col">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
                         {details.sessions.map((session) => (
                           <tr key={session.id}>
                             <td>{session.user_agent || "Unknown device"}</td>
-                            <td>{new Date(session.created_at).toLocaleString()}</td>
+                            <td>{formatDateTime(session.created_at)}</td>
                             <td>
                               {session.last_used_at
-                                ? new Date(session.last_used_at).toLocaleString()
+                                ? formatDateTime(session.last_used_at)
                                 : "Not used"}
                             </td>
-                            <td>{new Date(session.expires_at).toLocaleString()}</td>
+                            <td>{formatDateTime(session.expires_at)}</td>
                             <td>{session.is_active ? "Active" : "Revoked/expired"}</td>
+                            <td>
+                              {session.is_active && (
+                                <button
+                                  className="button button-quiet"
+                                  type="button"
+                                  disabled={pendingAction !== ""}
+                                  onClick={() =>
+                                    void runAction(
+                                      `session-${session.id}`,
+                                      () => revokeAdminUserSession(details.user.id, session.id),
+                                      "Session revoked.",
+                                    )
+                                  }
+                                >
+                                  {pendingAction === `session-${session.id}` ? "Revoking..." : "Revoke"}
+                                </button>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>

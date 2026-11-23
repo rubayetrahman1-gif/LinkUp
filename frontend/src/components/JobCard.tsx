@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Job } from "../types/job";
+import { formatDate } from "../dateTime";
 import { formatEmploymentType } from "./jobUtils";
 
 export function CompanyMark({ name }: { name: string }) {
@@ -18,7 +19,7 @@ export function JobCard({ job }: { job: Job }) {
       <p className="job-company">{job.company_name}</p>
       <div className="job-meta">
         <span aria-label="Location">⌖ &nbsp;{job.location}</span>
-        <span aria-label="Posted date">◷ &nbsp;{new Date(job.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+        <span aria-label="Posted date">◷ &nbsp;{formatDate(job.created_at)}</span>
       </div>
       <p className="job-card-description">{job.description}</p>
       <div className="job-card-footer">

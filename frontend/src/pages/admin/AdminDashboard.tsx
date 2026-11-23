@@ -5,6 +5,7 @@ import {
   type AdminDashboardOverview,
 } from "../../services/adminService";
 import { AdminNavigation } from "../../components/AdminNavigation";
+import { formatDateTime } from "../../dateTime";
 
 function AdminDashboard() {
   const [overview, setOverview] = useState<AdminDashboardOverview | null>(null);
@@ -107,6 +108,10 @@ function AdminDashboard() {
                     <strong>{overview.users.inactive}</strong>
                   </article>
                   <article className="dashboard-stat">
+                    <span>Banned accounts</span>
+                    <strong>{overview.users.banned}</strong>
+                  </article>
+                  <article className="dashboard-stat">
                     <span>Job seekers</span>
                     <strong>{overview.users.by_role.job_seeker}</strong>
                   </article>
@@ -180,7 +185,9 @@ function AdminDashboard() {
                           <span className="admin-activity-type">
                             {activity.type === "user_registered"
                               ? "Account"
-                              : "Job"}
+                              : activity.type === "job_posted"
+                                ? "Job"
+                                : "Audit"}
                           </span>
                           <span>
                             <strong>{activity.actor}</strong> {activity.action}{" "}
@@ -188,7 +195,7 @@ function AdminDashboard() {
                           </span>
                         </div>
                         <time dateTime={activity.occurred_at}>
-                          {new Date(activity.occurred_at).toLocaleString()}
+                          {formatDateTime(activity.occurred_at)}
                         </time>
                       </li>
                     ))}

@@ -46,6 +46,9 @@ def get_current_user(
         if current_user is None:
             raise HTTPException(status_code=401, detail="User not found")
 
+        if current_user.is_banned:
+            raise HTTPException(status_code=403, detail="Account is banned")
+
         if not current_user.is_active:
             raise HTTPException(status_code=403, detail="Account is inactive")
 

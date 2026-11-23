@@ -55,8 +55,17 @@ An Administrator can:
 
 -   View platform-wide user, job, and application statistics.
 -   Review who registered or posted a job, what was affected, and when.
+-   Search, filter, and paginate registered users.
+-   Inspect user account information, available activity, and sessions.
+-   View group memberships when Groups/Teams are implemented.
 -   View and manage user accounts.
+-   Ban and unban users, change user roles, revoke individual sessions,
+    and perform supported bulk ban/unban operations.
 -   View and moderate job postings.
+-   Search and moderate supported job postings and application records.
+-   Review audit logs and security events, including failed logins grouped
+    by IP address and account.
+-   Export filtered user, content, and audit records as CSV.
 
 ## 3. Use Cases
 
@@ -109,6 +118,18 @@ LinkUp system.
   UC-08   View Admin     An Administrator reviews platform counts and recent
           Overview       user/job activity.
 
+  UC-09   Review Users   An Administrator searches, filters, paginates, and
+                         inspects user account details and sessions.
+
+  UC-10   Moderate       An Administrator searches, filters, and removes
+          Content        job postings or application records.
+
+  UC-11   Review Audit   An Administrator filters audit events and reviews
+          and Security   failed authentication activity.
+
+  UC-12   Export Data    An Administrator exports filtered user, content, or
+                         audit records as CSV.
+
 ## 4. Functional Requirements
 
 ### 4.1 User Authentication
@@ -153,6 +174,33 @@ LinkUp system.
     application counts, recent user/job activity with actor, action,
     target, and timestamp, and new-user/job statistics for the previous
     seven days.
+-   **FR-16:** The system shall allow Administrators to search users by
+    name or email, filter by role and account status, paginate results,
+    and inspect account details, available activity, and session
+    metadata. Group membership information shall be available when
+    Groups/Teams are implemented.
+-   **FR-17:** The system shall allow authorized Administrators to ban or
+    unban users, change user roles, revoke individual sessions, and
+    perform validated bulk ban/unban actions. A reason shall be required
+    when banning a user.
+-   **FR-18:** The system shall prevent an Administrator from banning
+    themselves or changing their own role. A banned account shall be
+    denied protected requests and refresh-token use.
+-   **FR-19:** Administrators shall be able to search, filter, paginate,
+    and individually or bulk remove job postings and applications.
+    Deleting a job shall remove its related applications in the same
+    transaction.
+-   **FR-20:** The system shall audit successful and failed logins,
+    logout, password changes, user bans/unbans, role changes, session
+    revocation, content deletion, and data exports. Records shall contain
+    available actor/target identifiers, UTC timestamp, IP address, user
+    agent, and non-secret action details.
+-   **FR-21:** Administrators shall be able to search and filter audit
+    events and review failed login activity grouped by IP address and
+    account.
+-   **FR-22:** Administrators shall be able to export filtered users,
+    supported content, and audit events as CSV without credential or
+    token data.
 
 ## 5. Non-Functional Requirements
 
@@ -180,6 +228,13 @@ LinkUp system.
     permissions.
 -   Frontend restrictions alone shall not be considered sufficient
     security.
+-   User-management actions shall be validated and authorized by the
+    backend. Banning shall deactivate the account and revoke its active
+    refresh sessions.
+-   Content moderation, audit review, security monitoring, and exports
+    shall require explicit administrator permissions on the backend.
+-   Audit details and CSV exports shall not contain passwords, password
+    hashes, access tokens, or refresh tokens.
 
 ## 7. Release Requirements
 

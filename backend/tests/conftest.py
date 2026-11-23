@@ -7,7 +7,15 @@ from sqlalchemy.pool import StaticPool
 from database import Base
 from dependencies import SessionLocal as dependency_session_local
 from main import app
-from routers import admin, applications, auth, jobs, users
+from routers import (
+    admin,
+    admin_audit,
+    admin_content,
+    applications,
+    auth,
+    jobs,
+    users,
+)
 
 @pytest.fixture
 def test_db():
@@ -30,6 +38,8 @@ def test_db():
     original_jobs_session = jobs.SessionLocal
     original_applications_session = applications.SessionLocal
     original_admin_session = admin.SessionLocal
+    original_admin_audit_session = admin_audit.SessionLocal
+    original_admin_content_session = admin_content.SessionLocal
     original_dependency_session = dependency_session_local
 
     auth.SessionLocal = TestingSessionLocal
@@ -37,6 +47,8 @@ def test_db():
     jobs.SessionLocal = TestingSessionLocal
     applications.SessionLocal = TestingSessionLocal
     admin.SessionLocal = TestingSessionLocal
+    admin_audit.SessionLocal = TestingSessionLocal
+    admin_content.SessionLocal = TestingSessionLocal
 
     import dependencies
     dependencies.SessionLocal = TestingSessionLocal
@@ -49,6 +61,8 @@ def test_db():
         jobs.SessionLocal = original_jobs_session
         applications.SessionLocal = original_applications_session
         admin.SessionLocal = original_admin_session
+        admin_audit.SessionLocal = original_admin_audit_session
+        admin_content.SessionLocal = original_admin_content_session
         dependencies.SessionLocal = original_dependency_session
         Base.metadata.drop_all(bind=test_engine)
         test_engine.dispose()

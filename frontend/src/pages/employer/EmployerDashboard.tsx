@@ -6,6 +6,7 @@ import { deleteJob, getMyJobs } from "../../services/jobService";
 import type { User } from "../../types/auth";
 import type { Job } from "../../types/job";
 import { useAuth } from "../../context/useAuth";
+import { formatDate } from "../../dateTime";
 
 function EmployerDashboard() {
   const navigate = useNavigate();
@@ -150,7 +151,7 @@ const handleLogout = async () => {
                         <td>{job.company_name}</td>
                         <td><span className="portal-location"><span aria-hidden="true">⌖</span>{job.location}</span></td>
                         <td><span className="portal-type">{job.employment_type.replaceAll("_", " ")}</span></td>
-                        <td>{new Date(job.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</td>
+                        <td>{formatDate(job.created_at)}</td>
                         <td>
                           <div className="portal-row-actions">
                             <Link className="portal-action" to={`/employer/edit-job/${job.id}`} aria-label={`Edit ${job.title}`} title="Edit job">Edit</Link>

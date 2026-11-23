@@ -8,6 +8,7 @@ import { PublicLayout } from "../../components/SiteLayout";
 import { CompanyMark } from "../../components/JobCard";
 import { formatEmploymentType } from "../../components/jobUtils";
 import { applyForJob } from "../../services/applicationService";
+import { formatDate } from "../../dateTime";
 
 function JobDetails() {
   const { id } = useParams<{ id: string }>();
@@ -151,11 +152,7 @@ function JobDetails() {
                   </span>
                   <span>
                     <span aria-hidden="true">◷</span> Posted{" "}
-                    {new Date(job.created_at).toLocaleDateString(undefined, {
-                      month: "long",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    {formatDate(job.created_at)}
                   </span>
                   <span className="job-badge">
                     {formatEmploymentType(job.employment_type)}

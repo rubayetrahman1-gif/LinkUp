@@ -63,7 +63,8 @@ The frontend will communicate with the backend through REST APIs. The backend wi
 
 ## 4. Database Design
 
-The initial design will use three main tables.
+The core design uses users, jobs, applications, refresh sessions, and audit
+logs.
 
 ### 4.1 Users Table
 
@@ -105,6 +106,23 @@ The initial application status can be set to Pending. Employers can update it la
 
 The database will use IDs to connect users, jobs, and applications.
 
+### 4.4 Audit Logs Table
+
+Stores security and administrative events. Each record includes a nullable
+actor and target user reference, action name, target type and identifier,
+JSON action details, request IP address, user agent, and UTC creation time.
+Authentication secrets and password data are never stored in audit details.
+Indexes support lookup by action, actor/target, IP address, and event time.
+
+### 4.5 Time Handling
+
+Timestamp columns use timezone-aware database types and API responses use
+ISO-8601 timestamps with timezone information. The frontend displays dates and
+times in the viewer's device timezone; date-time values include the timezone
+abbreviation so the displayed time is unambiguous. If an API timestamp has no
+offset, the frontend treats it as UTC. Invalid or missing values are shown as
+unavailable rather than as an incorrect date.
+
 ## 5. REST API Design
 
 The frontend will use REST APIs to communicate with the backend.
@@ -138,8 +156,8 @@ The frontend will use REST APIs to communicate with the backend.
 
 ### 5.4 Administration
 
-Administrator operations use protected backend endpoints. The dashboard overview
-is available at `GET /api/admin/dashboard/overview` and requires the
+Administrator operations use protected backend endpoints. The dashboard
+overview is available at `GET /api/admin/dashboard/overview` and requires the
 `read_admin_dashboard` permission from the centralized RBAC configuration.
 
 The response contains total users and counts by role, active/inactive account
@@ -151,8 +169,81 @@ credentials or authentication tokens.
 Groups/Teams are not implemented, so group availability is reported as
 unavailable rather than returning a fabricated count. Applications currently
 have no creation timestamp, so they are included in lifetime content counts but
-not in last-seven-days activity statistics. Audit-log activity will be integrated
-when the audit-trail scope is implemented.
+not in last-seven-days activity statistics.
+
+User management uses `read_admin_users` and exposes:
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| GET | `/api/admin/users` | Search, filter, and paginate users |
+| GET | `/api/admin/users/{user_id}` | View account details, activity, and session metadata |
+
+The user list accepts `search` (name/email), `role`, `status` (`active`,
+`inactive`, or `banned`), `page`, and `page_size` query parameters. Page size
+is limited to 100. User responses omit password hashes and authentication tokens. Session
+details omit refresh-token hashes. The details response reports group membership
+as unavailable until Groups/Teams are implemented. Application activity is
+included without an event time because application records currently have no
+creation timestamp.
+
+Administrators with the corresponding centralized RBAC permissions can:
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| PATCH | `/api/admin/users/{user_id}/ban` | Ban a user with a required reason and revoke active refresh sessions |
+| POST | `/api/admin/users/{user_id}/unban` | Restore a banned user account |
+| PATCH | `/api/admin/users/{user_id}/role` | Change a user's role among the three supported roles |
+| POST | `/api/admin/users/{user_id}/sessions/{session_id}/revoke` | Revoke one active session belonging to that user |
+| POST | `/api/admin/users/bulk-action` | Perform validated bulk ban/unban operations (maximum 100 users) |
+
+Administrators cannot ban themselves or change their own role. A ban marks
+the account inactive, records the reason, timestamp, and acting administrator,
+and prevents subsequent protected requests and refreshes. Ban state is stored
+separately from ordinary account inactivity. The `backend/migrations/20261123_admin_user_controls.sql`
+migration adds the ban metadata fields to existing PostgreSQL databases; it
+must be applied before deploying the user-management changes.
+
+Content moderation requires `moderate_content` and supports jobs and
+applications:
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| GET | `/api/admin/content` | Search/filter and paginate jobs or applications |
+| DELETE | `/api/admin/content/{content_type}/{record_id}` | Remove one supported content record |
+| POST | `/api/admin/content/bulk-delete` | Remove up to 100 records of one content type |
+
+Deleting a job and its applications runs in one database transaction. A
+moderation event is recorded with the affected job/application identifiers.
+Groups/Teams are not implemented and are not included in content moderation.
+
+Audit and security APIs require `read_admin_audit` or
+`read_security_events`:
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| GET | `/api/admin/audit-logs` | Search/filter and paginate audit events |
+| GET | `/api/admin/security/overview` | Summarize failed login attempts by IP/account and list recent security events |
+
+Audit entries cover successful/failed/blocked login, logout, successful and
+failed password changes, user bans/unbans, role changes, session revocation,
+content deletion, and data exports. Available actor/target IDs, UTC timestamp,
+IP address, user agent, and safe action details are stored. Failed logins for
+unknown accounts retain the submitted account identifier, but never passwords.
+
+CSV exports require `export_admin_data` and honor the provided filters:
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| GET | `/api/admin/exports/users.csv` | Export filtered user records |
+| GET | `/api/admin/exports/content.csv` | Export filtered jobs or applications |
+| GET | `/api/admin/exports/audit.csv` | Export filtered audit events |
+
+Exported user records omit password hashes and authentication tokens. CSV
+cells beginning with spreadsheet formula characters are escaped. Every
+completed export creates an audit event. The migration
+`backend/migrations/20261123_admin_audit_logs.sql` creates the audit table and
+its indexes for existing PostgreSQL databases; apply it before enabling these
+routes in an existing deployment.
 
 ## 6. Authentication and Authorization
 
@@ -179,6 +270,10 @@ The backend will check whether a user has the required permission before allowin
 For example, creating a job requires job-creation permission. Editing a job also requires checking that the job belongs to the current employer.
 
 Role checks, permission checks, and resource ownership checks will be enforced by the backend.
+
+Administrator content moderation, audit/security review, and data exports use
+the centralized `moderate_content`, `read_admin_audit`,
+`read_security_events`, and `export_admin_data` permissions respectively.
 
 ## 7. Frontend and Backend Integration
 

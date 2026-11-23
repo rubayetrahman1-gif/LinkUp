@@ -59,6 +59,10 @@ async function parseResponse(response: Response): Promise<unknown> {
 
   const responseText = await response.text();
 
+  if (contentType.includes("text/csv")) {
+    return responseText;
+  }
+
   if (!response.ok) {
     return {
       detail: `Request failed (${response.status}). The server returned a non-JSON response.`,
@@ -73,31 +77,51 @@ async function parseResponse(response: Response): Promise<unknown> {
 }
 
 
-async function refreshAccessToken(): Promise<RefreshResult> {
+async function refreshAccessToken(
+  requestAccessToken: string | null,
+): Promise<RefreshResult> {
   if (refreshPromise) return refreshPromise;
 
   const pendingRefresh = (async (): Promise<RefreshResult> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include",
-      });
-
-      if (response.status === 401) return { failure: "rejected" };
-      if (!response.ok) return { failure: "unavailable" };
-
-      const data = await parseResponse(response);
-
-      if (!isRecord(data) || typeof data.access_token !== "string" || !data.access_token) {
-        return { failure: "unavailable" };
+    const refreshWithinTabLock = async (): Promise<RefreshResult> => {
+      const currentAccessToken = localStorage.getItem("access_token");
+      if (currentAccessToken !== requestAccessToken) {
+        return currentAccessToken
+          ? { accessToken: currentAccessToken }
+          : { failure: "rejected" };
       }
 
-      localStorage.setItem("access_token", data.access_token);
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include",
+        });
 
-      return { accessToken: data.access_token };
-    } catch {
-      return { failure: "unavailable" };
+        if (response.status === 401) return { failure: "rejected" };
+        if (!response.ok) return { failure: "unavailable" };
+
+        const data = await parseResponse(response);
+
+        if (!isRecord(data) || typeof data.access_token !== "string" || !data.access_token) {
+          return { failure: "unavailable" };
+        }
+
+        localStorage.setItem("access_token", data.access_token);
+
+        return { accessToken: data.access_token };
+      } catch {
+        return { failure: "unavailable" };
+      }
     }
+
+    if (typeof navigator !== "undefined" && navigator.locks) {
+      return navigator.locks.request(
+        "linkup-auth-refresh",
+        refreshWithinTabLock,
+      );
+    }
+
+    return refreshWithinTabLock();
   })();
 
   const sharedRefresh = pendingRefresh.finally(() => {
@@ -141,7 +165,7 @@ export async function apiRequest<T = unknown>(
   ];
 
   if (response.status === 401 && !excludedEndpoints.includes(endpoint)) {
-    const refreshResult = await refreshAccessToken();
+    const refreshResult = await refreshAccessToken(token);
 
     if ("accessToken" in refreshResult) {
       response = await sendRequest(refreshResult.accessToken);

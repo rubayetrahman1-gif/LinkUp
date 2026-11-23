@@ -11,6 +11,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
+from audit import record_audit_event
 from rbac import Permission, require_permission
 from database import SessionLocal
 from models import User, RefreshSession
@@ -94,6 +95,15 @@ def login_user(
         )
 
         if not existing_user:
+            record_audit_event(
+                db,
+                request,
+                "auth.login.failed",
+                target_type="account",
+                target_id=user.email,
+                details={"reason": "unknown_account"},
+            )
+            db.commit()
             raise HTTPException(
                 status_code=401,
                 detail="Invalid email or password",
@@ -113,6 +123,16 @@ def login_user(
                 )
 
             if locked_until > now:
+                record_audit_event(
+                    db,
+                    request,
+                    "auth.login.failed",
+                    target_user_id=existing_user.id,
+                    target_type="user",
+                    target_id=existing_user.email,
+                    details={"reason": "account_locked"},
+                )
+                db.commit()
                 raise HTTPException(
                     status_code=429,
                     detail="Your account is temporarily locked. Please try again later.",
@@ -140,6 +160,15 @@ def login_user(
         if not is_pepper_verified and not is_legacy_verified:
 
             existing_user.failed_login_attempts += 1
+            record_audit_event(
+                db,
+                request,
+                "auth.login.failed",
+                target_user_id=existing_user.id,
+                target_type="user",
+                target_id=existing_user.email,
+                details={"reason": "invalid_credentials"},
+            )
 
             if (
                 existing_user.failed_login_attempts
@@ -168,7 +197,33 @@ def login_user(
             )
 
         # Check account status
+        if existing_user.is_banned:
+            record_audit_event(
+                db,
+                request,
+                "auth.login.blocked",
+                target_user_id=existing_user.id,
+                target_type="user",
+                target_id=existing_user.email,
+                details={"reason": "banned_account"},
+            )
+            db.commit()
+            raise HTTPException(
+                status_code=403,
+                detail="Account is banned",
+            )
+
         if not existing_user.is_active:
+            record_audit_event(
+                db,
+                request,
+                "auth.login.blocked",
+                target_user_id=existing_user.id,
+                target_type="user",
+                target_id=existing_user.id,
+                details={"reason": "inactive_account"},
+            )
+            db.commit()
             raise HTTPException(
                 status_code=403,
                 detail="Account is inactive",
@@ -208,6 +263,15 @@ def login_user(
         )
 
         db.add(refresh_session)
+        record_audit_event(
+            db,
+            request,
+            "auth.login.succeeded",
+            actor_user_id=existing_user.id,
+            target_user_id=existing_user.id,
+            target_type="user",
+            target_id=existing_user.id,
+        )
         db.commit()
 
         response = JSONResponse(
@@ -279,7 +343,11 @@ def refresh_access_token(
             db.query(User).filter(User.id == refresh_session.user_id).first()
         )
 
-        if not existing_user or not existing_user.is_active:
+        if (
+            not existing_user
+            or not existing_user.is_active
+            or existing_user.is_banned
+        ):
             raise HTTPException(
                 status_code=401,
                 detail="User account is unavailable",
@@ -332,26 +400,35 @@ def refresh_access_token(
 
 @router.post("/logout")
 def logout_user(
+    request: Request,
     response: Response,
     refresh_token: str | None = Cookie(default=None),
 ):
-    if refresh_token:
-        with SessionLocal() as db:
+    with SessionLocal() as db:
+        refresh_session = None
+        if refresh_token:
             token_hash = hash_refresh_token(refresh_token)
-
             refresh_session = (
                 db.query(RefreshSession)
-                .filter(
-                    RefreshSession.token_hash == token_hash,
-                    RefreshSession.revoked_at.is_(None),
-                )
+                .filter(RefreshSession.token_hash == token_hash)
                 .with_for_update()
                 .first()
             )
 
-            if refresh_session:
+            if refresh_session and refresh_session.revoked_at is None:
                 refresh_session.revoked_at = datetime.now(timezone.utc)
-                db.commit()
+
+        record_audit_event(
+            db,
+            request,
+            "auth.logout",
+            actor_user_id=refresh_session.user_id if refresh_session else None,
+            target_user_id=refresh_session.user_id if refresh_session else None,
+            target_type="user" if refresh_session else None,
+            target_id=refresh_session.user_id if refresh_session else None,
+            details={"refresh_session_found": refresh_session is not None},
+        )
+        db.commit()
 
     response.delete_cookie(
         key="refresh_token",
@@ -406,6 +483,7 @@ def get_user_sessions(
 @router.delete("/sessions/{session_id}")
 def revoke_user_session(
     session_id: int,
+    request: Request,
     response: Response,
     current_user: User = Depends(require_permission(Permission.REVOKE_SESSIONS)),
     refresh_token: str | None = Cookie(default=None),
@@ -429,6 +507,15 @@ def revoke_user_session(
             )
 
         session.revoked_at = datetime.now(timezone.utc)
+        record_audit_event(
+            db,
+            request,
+            "auth.session.revoked",
+            actor_user_id=current_user.id,
+            target_user_id=current_user.id,
+            target_type="refresh_session",
+            target_id=session.id,
+        )
 
         if refresh_token and session.token_hash == hash_refresh_token(refresh_token):
             response.delete_cookie(

@@ -86,6 +86,7 @@ def test_admin_dashboard_overview_returns_platform_statistics(
         "by_role": {"job_seeker": 1, "employer": 1, "admin": 1},
         "active": 2,
         "inactive": 1,
+        "banned": 0,
     }
     assert data["content"] == {
         "jobs": 1,
@@ -97,6 +98,7 @@ def test_admin_dashboard_overview_returns_platform_statistics(
     assert {item["type"] for item in data["recent_activity"]} == {
         "user_registered",
         "job_posted",
+        "audit_event",
     }
     registration = next(
         item

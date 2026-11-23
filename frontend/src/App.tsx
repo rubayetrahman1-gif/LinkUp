@@ -13,6 +13,10 @@ import EmployerApplications from "./pages/employer/EmployerApplications";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserDetails from "./pages/admin/AdminUserDetails";
+import AdminContent from "./pages/admin/AdminContent";
+import AdminAudit from "./pages/admin/AdminAudit";
+import AdminSecurity from "./pages/admin/AdminSecurity";
+import AdminExports from "./pages/admin/AdminExports";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -97,6 +101,38 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminUserDetails />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/content"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminContent />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/security"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminSecurity />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/audit"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminAudit />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/exports"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminExports />
             </ProtectedRoute>
           }
         />
