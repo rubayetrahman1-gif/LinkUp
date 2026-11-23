@@ -11,9 +11,11 @@ import {
   updateCurrentUser,
 } from "../../services/authService";
 import type { ActiveSession, User } from "../../types/auth";
+import { useAuth } from "../../context/useAuth";
 
 function ProfileSettings() {
   const navigate = useNavigate();
+  const { setUser: setAuthenticatedUser } = useAuth();
   const [profile, setProfile] = useState<User | null>(null);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -148,6 +150,8 @@ function ProfileSettings() {
         await logoutUser();
       } catch {
         cleanupWarning = true;
+      } finally {
+        setAuthenticatedUser(null);
       }
 
       navigate("/auth/login", {
@@ -179,6 +183,8 @@ function ProfileSettings() {
           await logoutUser();
         } catch {
           cleanupWarning = true;
+        } finally {
+          setAuthenticatedUser(null);
         }
         navigate("/auth/login", {
           replace: true,

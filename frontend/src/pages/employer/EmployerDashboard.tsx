@@ -5,9 +5,11 @@ import { getCurrentUser, logoutUser } from "../../services/authService";
 import { deleteJob, getMyJobs } from "../../services/jobService";
 import type { User } from "../../types/auth";
 import type { Job } from "../../types/job";
+import { useAuth } from "../../context/useAuth";
 
 function EmployerDashboard() {
   const navigate = useNavigate();
+  const { setUser: setAuthenticatedUser } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,7 @@ const handleLogout = async () => {
   } catch (error) {
     console.error("Logout request failed:", error);
   } finally {
+    setAuthenticatedUser(null);
     navigate("/");
   }
 };
@@ -74,6 +77,7 @@ const handleLogout = async () => {
 
         <nav className="portal-navigation" aria-label="Employer dashboard">
           <a className="portal-nav-item active" href="#my-jobs" aria-current="page"><span aria-hidden="true">▣</span> My Jobs</a>
+          <Link className="portal-nav-item" to="/employer/applications"><span aria-hidden="true">▤</span> Applications</Link>
           <Link className="portal-nav-item" to="/jobs"><span aria-hidden="true">⌕</span> Browse jobs</Link>
           <Link className="portal-nav-item" to="/settings">Account settings</Link>
         </nav>

@@ -11,7 +11,7 @@ import os
 from datetime import datetime, timedelta, timezone
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
-from dependencies import get_current_user
+from rbac import Permission, require_permission
 from database import SessionLocal
 from models import User, RefreshSession
 from schemas import UserRegister, UserResponse, UserLogin
@@ -366,7 +366,7 @@ def logout_user(
 
 @router.get("/sessions")
 def get_user_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.READ_SESSIONS)),
     refresh_token: str | None = Cookie(default=None),
 ):
     now = datetime.now(timezone.utc)
@@ -407,7 +407,7 @@ def get_user_sessions(
 def revoke_user_session(
     session_id: int,
     response: Response,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_permission(Permission.REVOKE_SESSIONS)),
     refresh_token: str | None = Cookie(default=None),
 ):
     with SessionLocal() as db:

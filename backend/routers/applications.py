@@ -4,7 +4,8 @@ from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
 from models import User, Job, Application
-from dependencies import get_current_job_seeker
+from rbac import Permission, require_permission
+from schemas import ApplicationStatusUpdate
 
 
 router = APIRouter(prefix="/api/jobs", tags=["Applications"])
@@ -17,7 +18,7 @@ router = APIRouter(prefix="/api/jobs", tags=["Applications"])
 )
 def apply_for_job(
     job_id: int,
-    current_user: User = Depends(get_current_job_seeker)
+    current_user: User = Depends(require_permission(Permission.APPLY_FOR_JOB))
 ):
     with SessionLocal() as db:
         job = db.query(Job).filter(
@@ -74,7 +75,9 @@ history_router = APIRouter(
 
 @history_router.get("/my")
 def get_my_applications(
-    current_user: User = Depends(get_current_job_seeker)
+    current_user: User = Depends(
+        require_permission(Permission.READ_OWN_APPLICATIONS)
+    )
 ):
     with SessionLocal() as db:
         applications = db.query(
@@ -97,4 +100,73 @@ def get_my_applications(
             }
             for application, job in applications
         ]
+
+
+@history_router.get("/employer")
+def get_employer_applications(
+    current_user: User = Depends(
+        require_permission(Permission.MANAGE_OWN_APPLICATIONS)
+    ),
+):
+    with SessionLocal() as db:
+        applications = (
+            db.query(Application, Job, User)
+            .join(Job, Application.job_id == Job.id)
+            .join(User, Application.job_seeker_id == User.id)
+            .filter(Job.employer_id == current_user.id)
+            .order_by(Application.id.desc())
+            .all()
+        )
+
+        return [
+            {
+                "application_id": application.id,
+                "job_id": job.id,
+                "job_title": job.title,
+                "company_name": job.company_name,
+                "status": application.status,
+                "applicant": {
+                    "id": applicant.id,
+                    "full_name": applicant.full_name,
+                    "email": applicant.email,
+                },
+            }
+            for application, job, applicant in applications
+        ]
+
+
+@history_router.patch("/{application_id}/status")
+def update_application_status(
+    application_id: int,
+    status_data: ApplicationStatusUpdate,
+    current_user: User = Depends(
+        require_permission(Permission.MANAGE_OWN_APPLICATIONS)
+    ),
+):
+    with SessionLocal() as db:
+        application = (
+            db.query(Application)
+            .join(Job, Application.job_id == Job.id)
+            .filter(
+                Application.id == application_id,
+                Job.employer_id == current_user.id,
+            )
+            .first()
+        )
+
+        if application is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Application not found",
+            )
+
+        application.status = status_data.status
+        db.commit()
+        db.refresh(application)
+
+        return {
+            "application_id": application.id,
+            "job_id": application.job_id,
+            "status": application.status,
+        }
 
