@@ -11,6 +11,8 @@ import ApplicationHistory from "./pages/jobs/ApplicationHistory";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import EmployerApplications from "./pages/employer/EmployerApplications";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminUserDetails from "./pages/admin/AdminUserDetails";
 import { AuthProvider } from "./context/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 
@@ -79,6 +81,22 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["admin"]}>
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminUsers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/users/:id"
+          element={
+            <ProtectedRoute allowedRoles={["admin"]}>
+              <AdminUserDetails />
             </ProtectedRoute>
           }
         />

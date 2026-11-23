@@ -14,6 +14,8 @@ class Permission(str, Enum):
     READ_OWN_APPLICATIONS = "read_own_applications"
     MANAGE_OWN_APPLICATIONS = "manage_own_applications"
     READ_ALL_USERS = "read_all_users"
+    READ_ADMIN_DASHBOARD = "read_admin_dashboard"
+    READ_ADMIN_USERS = "read_admin_users"
     READ_PROFILE = "read_profile"
     UPDATE_PROFILE = "update_profile"
     CHANGE_PASSWORD = "change_password"
@@ -50,6 +52,8 @@ ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
     "admin": frozenset(
         {
             Permission.READ_ALL_USERS,
+            Permission.READ_ADMIN_DASHBOARD,
+            Permission.READ_ADMIN_USERS,
             Permission.READ_PROFILE,
             Permission.UPDATE_PROFILE,
             Permission.CHANGE_PASSWORD,

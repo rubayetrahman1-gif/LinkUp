@@ -55,6 +55,9 @@ An employer can:
 
 An administrator can:
 
+-   View platform-wide user, job, and application statistics.
+-   Review who registered or posted a job, what account/content was
+    affected, and when the activity happened.
 -   View and manage user accounts.
 -   View and moderate job postings.
 
@@ -83,6 +86,8 @@ LinkUp.
 
 -   **US-06:** As an Administrator, I want to manage user accounts and
     moderate job postings so that I can maintain the platform.
+-   **US-07:** As an Administrator, I want to view platform statistics
+    and recent activity so that I can monitor LinkUp at a glance.
 
 ## 5. Main Features
 
@@ -95,6 +100,7 @@ LinkUp will include the following features:
 -   Job application submission
 -   Application status tracking
 -   Basic user management by the administrator
+-   Administrator dashboard overview
 -   Role-based access control
 -   Security scopes and permissions
 
@@ -209,6 +215,11 @@ access, application management, and the required security features.
     restricted operations.
 -   **FR-14:** Administrators shall be able to manage users and moderate
     job postings.
+-   **FR-15:** Administrators shall be able to view total users and role
+    counts, active and inactive accounts, job and application counts,
+    recent user registrations and job postings with actor, action,
+    target, and timestamp, and user/job totals for the previous seven
+    days.
 
 ## 9. Non-Functional Requirements
 

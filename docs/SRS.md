@@ -53,6 +53,8 @@ An Employer can:
 
 An Administrator can:
 
+-   View platform-wide user, job, and application statistics.
+-   Review who registered or posted a job, what was affected, and when.
 -   View and manage user accounts.
 -   View and moderate job postings.
 
@@ -104,6 +106,9 @@ LinkUp system.
 
   -----------------------------------------------------------------------
 
+  UC-08   View Admin     An Administrator reviews platform counts and recent
+          Overview       user/job activity.
+
 ## 4. Functional Requirements
 
 ### 4.1 User Authentication
@@ -143,6 +148,11 @@ LinkUp system.
     records.
 -   **FR-14:** The system shall allow Administrators to manage user
     accounts and moderate job postings.
+-   **FR-15:** The system shall provide Administrators with total and
+    role-based user counts, active and inactive account counts, job and
+    application counts, recent user/job activity with actor, action,
+    target, and timestamp, and new-user/job statistics for the previous
+    seven days.
 
 ## 5. Non-Functional Requirements
 

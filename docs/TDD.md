@@ -138,9 +138,21 @@ The frontend will use REST APIs to communicate with the backend.
 
 ### 5.4 Administration
 
-Administrator operations will use protected backend endpoints to manage users and moderate job postings.
+Administrator operations use protected backend endpoints. The dashboard overview
+is available at `GET /api/admin/dashboard/overview` and requires the
+`read_admin_dashboard` permission from the centralized RBAC configuration.
 
-The exact endpoints and request formats will be finalized during implementation.
+The response contains total users and counts by role, active/inactive account
+counts, total jobs and applications with application-status counts, recent user
+registrations and job postings with actor, action, target, and UTC timestamp,
+and user/job counts for the last seven days. The response does not include
+credentials or authentication tokens.
+
+Groups/Teams are not implemented, so group availability is reported as
+unavailable rather than returning a fabricated count. Applications currently
+have no creation timestamp, so they are included in lifetime content counts but
+not in last-seven-days activity statistics. Audit-log activity will be integrated
+when the audit-trail scope is implemented.
 
 ## 6. Authentication and Authorization
 

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import auth, jobs, users, applications
+from routers import admin, auth, jobs, users, applications
 
 app = FastAPI(title="FastAPI + React")
 
@@ -13,6 +13,7 @@ app.include_router(jobs.router)
 app.include_router(users.router)
 app.include_router(applications.router)
 app.include_router(applications.history_router)
+app.include_router(admin.router)
 
 
 
