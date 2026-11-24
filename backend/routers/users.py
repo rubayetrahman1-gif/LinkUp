@@ -1,5 +1,5 @@
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.exc import IntegrityError
 
 from database import SessionLocal
@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from schemas import UserResponse, UserUpdate, PasswordChange
 from security import verify_password, verify_legacy_password, hash_password
 from rbac import Permission, require_permission
+from audit import record_audit_event
 
 router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -74,6 +75,7 @@ def update_my_profile(
 @router.post("/me/change-password")
 def change_my_password(
     password_data: PasswordChange,
+    request: Request,
     current_user: User = Depends(require_permission(Permission.CHANGE_PASSWORD))
 ):
     with SessionLocal() as db:
@@ -100,6 +102,17 @@ def change_my_password(
             )
 
         if not is_current_password_valid:
+            record_audit_event(
+                db,
+                request,
+                "auth.password_change.failed",
+                actor_user_id=user.id,
+                target_user_id=user.id,
+                target_type="user",
+                target_id=user.id,
+                details={"reason": "incorrect_current_password"},
+            )
+            db.commit()
             raise HTTPException(
                 status_code=401,
                 detail="Current password is incorrect"
@@ -137,6 +150,15 @@ def change_my_password(
         for session in active_sessions:
             session.revoked_at = now
 
+        record_audit_event(
+            db,
+            request,
+            "auth.password_change.succeeded",
+            actor_user_id=user.id,
+            target_user_id=user.id,
+            target_type="user",
+            target_id=user.id,
+        )
 
         db.commit()
 

@@ -12,6 +12,7 @@ import {
 } from "../../services/authService";
 import type { ActiveSession, User } from "../../types/auth";
 import { useAuth } from "../../context/useAuth";
+import { formatDateTime } from "../../dateTime";
 
 function ProfileSettings() {
   const navigate = useNavigate();
@@ -368,10 +369,10 @@ function ProfileSettings() {
                             </td>
                             <td>
                               {session.last_used_at
-                                ? new Date(session.last_used_at).toLocaleString()
+                                ? formatDateTime(session.last_used_at)
                                 : "Not used yet"}
                             </td>
-                            <td>{new Date(session.expires_at).toLocaleString()}</td>
+                            <td>{formatDateTime(session.expires_at)}</td>
                             <td>
                               <button
                                 className="portal-action portal-delete"

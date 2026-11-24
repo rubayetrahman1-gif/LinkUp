@@ -14,6 +14,16 @@ class Permission(str, Enum):
     READ_OWN_APPLICATIONS = "read_own_applications"
     MANAGE_OWN_APPLICATIONS = "manage_own_applications"
     READ_ALL_USERS = "read_all_users"
+    READ_ADMIN_DASHBOARD = "read_admin_dashboard"
+    READ_ADMIN_USERS = "read_admin_users"
+    BAN_USERS = "ban_users"
+    CHANGE_USER_ROLES = "change_user_roles"
+    REVOKE_USER_SESSIONS = "revoke_user_sessions"
+    BULK_MANAGE_USERS = "bulk_manage_users"
+    MODERATE_CONTENT = "moderate_content"
+    READ_ADMIN_AUDIT = "read_admin_audit"
+    READ_SECURITY_EVENTS = "read_security_events"
+    EXPORT_ADMIN_DATA = "export_admin_data"
     READ_PROFILE = "read_profile"
     UPDATE_PROFILE = "update_profile"
     CHANGE_PASSWORD = "change_password"
@@ -50,6 +60,16 @@ ROLE_PERMISSIONS: dict[str, frozenset[Permission]] = {
     "admin": frozenset(
         {
             Permission.READ_ALL_USERS,
+            Permission.READ_ADMIN_DASHBOARD,
+            Permission.READ_ADMIN_USERS,
+            Permission.BAN_USERS,
+            Permission.CHANGE_USER_ROLES,
+            Permission.REVOKE_USER_SESSIONS,
+            Permission.BULK_MANAGE_USERS,
+            Permission.MODERATE_CONTENT,
+            Permission.READ_ADMIN_AUDIT,
+            Permission.READ_SECURITY_EVENTS,
+            Permission.EXPORT_ADMIN_DATA,
             Permission.READ_PROFILE,
             Permission.UPDATE_PROFILE,
             Permission.CHANGE_PASSWORD,

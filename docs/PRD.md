@@ -55,6 +55,21 @@ An employer can:
 
 An administrator can:
 
+-   View platform-wide user, job, and application statistics.
+-   Review who registered or posted a job, what account/content was
+    affected, and when the activity happened.
+-   Search, filter, paginate, and review user account details, including
+    available account activity and session information.
+-   Ban and unban users with a required ban reason, change user roles,
+    revoke individual sessions, and apply supported bulk ban/unban actions.
+-   Prevent administrators from banning themselves or changing their own
+    role, and enforce bans on subsequent protected requests.
+-   Search, filter, paginate, and remove supported job and application
+    records individually or in bulk.
+-   Review searchable audit records and security events, including failed
+    login activity grouped by IP address and account.
+-   Export filtered user, content, and audit records as CSV.
+-   View user group memberships when Groups/Teams are available.
 -   View and manage user accounts.
 -   View and moderate job postings.
 
@@ -83,6 +98,18 @@ LinkUp.
 
 -   **US-06:** As an Administrator, I want to manage user accounts and
     moderate job postings so that I can maintain the platform.
+-   **US-07:** As an Administrator, I want to view platform statistics
+    and recent activity so that I can monitor LinkUp at a glance.
+-   **US-08:** As an Administrator, I want to search, filter, and paginate
+    user accounts and inspect account details so that I can review users
+    efficiently.
+-   **US-09:** As an Administrator, I want to review and remove supported
+    content records so that I can moderate the platform.
+-   **US-10:** As an Administrator, I want to search audit records and
+    review suspicious authentication activity so that I can investigate
+    platform events.
+-   **US-11:** As an Administrator, I want to export filtered records so
+    that I can review or report on platform data.
 
 ## 5. Main Features
 
@@ -95,6 +122,9 @@ LinkUp will include the following features:
 -   Job application submission
 -   Application status tracking
 -   Basic user management by the administrator
+-   Administrator dashboard overview
+-   Administrator content moderation, audit log, security monitoring,
+    and filtered CSV exports
 -   Role-based access control
 -   Security scopes and permissions
 
@@ -209,6 +239,37 @@ access, application management, and the required security features.
     restricted operations.
 -   **FR-14:** Administrators shall be able to manage users and moderate
     job postings.
+-   **FR-15:** Administrators shall be able to view total users and role
+    counts, active and inactive accounts, job and application counts,
+    recent user registrations and job postings with actor, action,
+    target, and timestamp, and user/job totals for the previous seven
+    days.
+-   **FR-16:** Administrators shall be able to search users by name or
+    email, filter by role and account status, paginate results, and view
+    account details, available activity, and session metadata. Group
+    memberships shall be shown when Groups/Teams are implemented.
+-   **FR-17:** Administrators shall be able to ban/unban users, change
+    roles, revoke individual sessions, and perform validated bulk
+    ban/unban operations. Ban operations shall require a reason and
+    revoke active refresh sessions.
+-   **FR-18:** The system shall prevent administrators from banning
+    themselves or changing their own role, and banned users shall be
+    rejected from protected requests and token refresh.
+-   **FR-19:** Administrators shall be able to search, filter, paginate,
+    and remove individual or multiple supported job postings and
+    applications. Removing a job shall also remove its related
+    applications and record the moderation action.
+-   **FR-20:** The system shall record successful and failed login
+    attempts, logout, password changes, user bans/unbans, role changes,
+    session revocation, content deletion, and data exports. Audit records
+    shall include available actor/target, timestamp, IP address, user
+    agent, and safe action details.
+-   **FR-21:** Administrators shall be able to search and filter audit
+    records and review security events, including failed login attempts
+    grouped by IP address and account.
+-   **FR-22:** Administrators shall be able to export filtered user,
+    supported content, and audit records as CSV. Exported data shall not
+    contain passwords, password hashes, access tokens, or refresh tokens.
 
 ## 9. Non-Functional Requirements
 

@@ -7,6 +7,8 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     ForeignKey,
+    Index,
+    JSON,
     Text,
     func,
     UniqueConstraint
@@ -52,6 +54,24 @@ class User(Base):
         Boolean,
         default=True,
         nullable=False
+    )
+    is_banned: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        server_default="false",
+        nullable=False
+    )
+    ban_reason: Mapped[str | None] = mapped_column(
+        String(500),
+        nullable=True
+    )
+    banned_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True
+    )
+    banned_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=True
     )
     failed_login_attempts: Mapped[int] = mapped_column(
         Integer,
@@ -196,4 +216,39 @@ class RefreshSession(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         nullable=True
+    )
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    __table_args__ = (
+        Index("ix_audit_logs_action_created_at", "action", "created_at"),
+        Index("ix_audit_logs_ip_created_at", "ip_address", "created_at"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    actor_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    target_user_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    action: Mapped[str] = mapped_column(String(100), nullable=False)
+    target_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    target_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    details: Mapped[dict[str, object] | None] = mapped_column(
+        JSON,
+        nullable=True,
+    )
+    ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
+    user_agent: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        index=True,
     )
