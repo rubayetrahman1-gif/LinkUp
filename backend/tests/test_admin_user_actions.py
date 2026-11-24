@@ -178,6 +178,65 @@ def test_admin_role_changes_are_validated_and_admin_only(client, test_db):
     assert forbidden_ban.status_code == 403
 
 
+def test_admin_team_visibility_and_role_changes_preserve_team_ownership(
+    client, test_db
+):
+    owner = register_user(client, "team-owner@example.com", role="employer")
+    recruiter = register_user(client, "team-recruiter@example.com", role="employer")
+    owner_login = login(client, "team-owner@example.com")
+    recruiter_login = login(client, "team-recruiter@example.com")
+    owner_headers = {
+        "Authorization": f"Bearer {owner_login.json()['access_token']}"
+    }
+    team_response = client.post(
+        "/api/teams",
+        headers=owner_headers,
+        json={"name": "Platform Hiring"},
+    )
+    assert team_response.status_code == 201
+    member_response = client.post(
+        f"/api/teams/{team_response.json()['id']}/members",
+        headers=owner_headers,
+        json={"email": "team-recruiter@example.com", "role": "recruiter"},
+    )
+    assert member_response.status_code == 201
+
+    _, admin_headers = make_admin(client, test_db)
+    team_list = client.get("/api/admin/teams", headers=admin_headers)
+    assert team_list.status_code == 200
+    assert team_list.json()["items"][0]["owner"]["user_id"] == owner["id"]
+    assert {
+        member["user_id"]: member["role"]
+        for member in team_list.json()["items"][0]["members"]
+    } == {
+        owner["id"]: "owner",
+        recruiter["id"]: "recruiter",
+    }
+
+    owner_role_change = client.patch(
+        f"/api/admin/users/{owner['id']}/role",
+        headers=admin_headers,
+        json={"role": "job_seeker"},
+    )
+    recruiter_role_change = client.patch(
+        f"/api/admin/users/{recruiter['id']}/role",
+        headers=admin_headers,
+        json={"role": "job_seeker"},
+    )
+    assert owner_role_change.status_code == 409
+    assert recruiter_role_change.status_code == 200
+    assert client.get(
+        f"/api/admin/users/{recruiter['id']}",
+        headers=admin_headers,
+    ).json()["groups"]["memberships"] == []
+    assert client.get(
+        f"/api/teams/{team_response.json()['id']}",
+        headers={
+            "Authorization": f"Bearer {recruiter_login.json()['access_token']}"
+        },
+    ).status_code == 403
+
+
 def test_admin_can_revoke_an_individual_user_session(client, test_db):
     _, admin_headers = make_admin(client, test_db)
     target = register_user(client, "session-target@example.com")

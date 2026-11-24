@@ -63,8 +63,8 @@ The frontend will communicate with the backend through REST APIs. The backend wi
 
 ## 4. Database Design
 
-The core design uses users, jobs, applications, refresh sessions, and audit
-logs.
+The core design uses users, jobs, applications, Teams and memberships,
+refresh sessions, and audit logs.
 
 ### 4.1 Users Table
 
@@ -90,6 +90,7 @@ Stores job posting information.
 | company_name | Company name                           |
 | location     | Job location                           |
 | employer_id  | ID of the employer who created the job |
+| group_id     | Optional Team/group ID; null for personal Employer jobs |
 
 ### 4.3 Applications Table
 
@@ -102,9 +103,35 @@ Stores job applications submitted by job seekers.
 | job_seeker_id | ID of the applicant   |
 | status        | Application status    |
 
-The initial application status can be set to Pending. Employers can update it later.
+The initial application status can be set to Pending. Personal Employers can
+update their own applications; Team application access is governed by Team role.
+Team applications store a Reviewer assignment and an internal recommendation
+(`Recommend`, `Not Recommend`, or `Need Further Consideration`) with reviewer
+and timestamp metadata. The recommendation is independent of final application
+status and is not included in Job Seeker history. Applications do not store CV
+files.
 
 The database will use IDs to connect users, jobs, and applications.
+
+### 4.5 Teams and Team Members
+
+The existing `groups` table is the physical storage for Employer Teams.
+`group_members` stores the unique group/user association and the `owner`,
+`recruiter`, or `reviewer` role. Team job posts use nullable `jobs.group_id`;
+personal jobs keep it null. The API exposes this association as `team_id`.
+The existing group and membership records are reused, not copied into new
+tables. Team deletion is a soft archive using `groups.deleted_at`; it retains
+jobs, applications, memberships, and recommendation history, while public job
+listing, detail, and application routes exclude archived Team jobs. Team jobs
+with applications cannot be individually deleted. The
+`backend/migrations/20261124_employer_teams.sql` migration creates the legacy
+group tables only if absent, adds `groups.deleted_at` and `jobs.group_id`, and
+adds application assignment/recommendation metadata to existing PostgreSQL
+databases. It adds no CV columns.
+
+The existing `shared_resources` table remains separate from the Team hiring
+workflow; it is not modified by the Teams migration or used in the Group
+Management dashboard.
 
 ### 4.4 Audit Logs Table
 
@@ -151,8 +178,11 @@ The frontend will use REST APIs to communicate with the backend.
 | ------ | --------------------------------------- | ------------------------------------------ |
 | POST   | `/jobs/{job_id}/applications`           | Apply for a job                            |
 | GET    | `/applications/my`                      | View the current job seeker's applications |
-| GET    | `/jobs/{job_id}/applications`           | View applications for an employer's job    |
+| GET    | `/applications/employer`                 | View applications for personal jobs        |
 | PATCH  | `/applications/{application_id}/status` | Update an application's status             |
+
+Team and personal job applications use the same request flow; no application
+endpoint accepts CV uploads.
 
 ### 5.4 Administration
 
@@ -166,10 +196,13 @@ registrations and job postings with actor, action, target, and UTC timestamp,
 and user/job counts for the last seven days. The response does not include
 credentials or authentication tokens.
 
-Groups/Teams are not implemented, so group availability is reported as
-unavailable rather than returning a fabricated count. Applications currently
-have no creation timestamp, so they are included in lifetime content counts but
-not in last-seven-days activity statistics.
+The dashboard reports the active Team count. `GET /api/admin/teams` provides
+group totals and paginated, read-only Team, Owner, member-role, job, and
+application details, including archived groups. Admin user details include
+each account's Team memberships. Admin accounts remain platform-level roles
+and are not Team members. Applications currently have no creation timestamp,
+so they are included in lifetime content counts but not in last-seven-days
+activity statistics.
 
 User management uses `read_admin_users` and exposes:
 
@@ -181,8 +214,8 @@ User management uses `read_admin_users` and exposes:
 The user list accepts `search` (name/email), `role`, `status` (`active`,
 `inactive`, or `banned`), `page`, and `page_size` query parameters. Page size
 is limited to 100. User responses omit password hashes and authentication tokens. Session
-details omit refresh-token hashes. The details response reports group membership
-as unavailable until Groups/Teams are implemented. Application activity is
+details omit refresh-token hashes. The details response includes Team
+membership names and roles. Application activity is
 included without an event time because application records currently have no
 creation timestamp.
 
@@ -214,7 +247,9 @@ applications:
 
 Deleting a job and its applications runs in one database transaction. A
 moderation event is recorded with the affected job/application identifiers.
-Groups/Teams are not implemented and are not included in content moderation.
+Team jobs and their applications remain visible to platform moderation through
+the existing jobs/applications content routes. Team settings are not managed
+through moderation routes.
 
 Audit and security APIs require `read_admin_audit` or
 `read_security_events`:
@@ -245,6 +280,31 @@ completed export creates an audit event. The migration
 its indexes for existing PostgreSQL databases; apply it before enabling these
 routes in an existing deployment.
 
+### 5.5 Employer Team APIs
+
+| Method | Endpoint | Purpose |
+| ------ | -------- | ------- |
+| GET / POST | `/api/teams` | List the current Employer's Teams / create a Team and Owner membership |
+| GET / PATCH / DELETE | `/api/teams/{team_id}` | View a member workspace / Owner rename or archive |
+| POST | `/api/teams/{team_id}/members` | Owner adds an Employer as Recruiter or Reviewer |
+| PATCH / DELETE | `/api/teams/{team_id}/members/{user_id}` | Owner changes role or removes member |
+| GET / POST | `/api/teams/{team_id}/jobs` | List or create Team jobs |
+| PUT / DELETE | `/api/teams/{team_id}/jobs/{job_id}` | Update (Owner/Recruiter) or delete an application-free job (Owner) |
+| GET | `/api/teams/{team_id}/applications` | Managers see all; Reviewers see assigned applications only |
+| PATCH | `/api/teams/{team_id}/applications/{application_id}/assignment` | Owner/Recruiter assigns or unassigns a Reviewer |
+| PATCH | `/api/teams/{team_id}/applications/{application_id}/review` | Assigned Reviewer submits an internal recommendation |
+| PATCH | `/api/teams/{team_id}/applications/{application_id}/status` | Owner/Recruiter updates final application status |
+| GET | `/api/admin/teams` | Admin-only paginated read view of Teams and members |
+
+Team endpoints first validate the global Employer role, membership, and
+per-team role. Personal `/api/jobs/my-jobs`, job update/delete, and
+`/api/applications/employer` routes exclude Team jobs to prevent personal
+ownership checks from bypassing Team permissions. Public job listing and
+details include jobs from active Teams and exclude archived-Team jobs. Team
+job company names are synchronized to the Team name. Archiving a Team preserves
+its history, prevents regular Team workspace operations, and hides its jobs
+from public listing, details, and application submission.
+
 ## 6. Authentication and Authorization
 
 ### 6.1 Authentication
@@ -274,6 +334,14 @@ Role checks, permission checks, and resource ownership checks will be enforced b
 Administrator content moderation, audit/security review, and data exports use
 the centralized `moderate_content`, `read_admin_audit`,
 `read_security_events`, and `export_admin_data` permissions respectively.
+
+Team Owner, Recruiter, and Reviewer roles are scoped to a Team and do not
+replace global account roles or RBAC permissions. The backend enforces Team
+membership for every private operation. Reviewers cannot query unassigned
+applications or change final application status. Admin APIs are read-only for
+Team data; Admins are not inserted as Team members. An Owner must archive all
+active Teams before an Administrator can change the Owner's global role away
+from Employer.
 
 ## 7. Frontend and Backend Integration
 

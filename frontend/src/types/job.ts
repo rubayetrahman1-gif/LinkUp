@@ -7,6 +7,7 @@ export interface Job {
   employment_type: "full_time" | "part_time" | "internship" | "contract";
   salary: string | null;
   employer_id: number;
+  team_id: number | null;
   created_at: string;
 }
 

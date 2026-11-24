@@ -350,9 +350,9 @@ function AdminUserDetails() {
                 <p className="admin-muted">
                   {details.groups.available
                     ? details.groups.memberships.length > 0
-                      ? details.groups.memberships.map((group) => group.name).join(", ")
+                      ? details.groups.memberships.map((group) => `${group.name} (${group.role})`).join(", ")
                       : "No group memberships."
-                    : "Groups/Teams are not implemented yet."}
+                    : "Team membership information is unavailable."}
                 </p>
               </section>
             </>

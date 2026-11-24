@@ -11,6 +11,7 @@ from routers import (
     jobs,
     users,
     applications,
+    teams,
 )
 
 app = FastAPI(title="FastAPI + React")
@@ -21,6 +22,7 @@ app.include_router(jobs.router)
 app.include_router(users.router)
 app.include_router(applications.router)
 app.include_router(applications.history_router)
+app.include_router(teams.router)
 app.include_router(admin.router)
 app.include_router(admin_content.router)
 app.include_router(admin_audit.router)

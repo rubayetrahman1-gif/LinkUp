@@ -57,7 +57,9 @@ An Administrator can:
 -   Review who registered or posted a job, what was affected, and when.
 -   Search, filter, and paginate registered users.
 -   Inspect user account information, available activity, and sessions.
--   View group memberships when Groups/Teams are implemented.
+-   View active and archived groups, Owners, member emails and roles,
+    membership dates, and Team job/application totals in a read-only admin
+    section without becoming a group member.
 -   View and manage user accounts.
 -   Ban and unban users, change user roles, revoke individual sessions,
     and perform supported bulk ban/unban operations.
@@ -176,9 +178,8 @@ LinkUp system.
     seven days.
 -   **FR-16:** The system shall allow Administrators to search users by
     name or email, filter by role and account status, paginate results,
-    and inspect account details, available activity, and session
-    metadata. Group membership information shall be available when
-    Groups/Teams are implemented.
+    and inspect account details, available activity, session metadata,
+    and Team memberships.
 -   **FR-17:** The system shall allow authorized Administrators to ban or
     unban users, change user roles, revoke individual sessions, and
     perform validated bulk ban/unban actions. A reason shall be required
@@ -304,3 +305,26 @@ The Beta release shall complete and improve the MVP features:
 -   The project shall focus on essential job portal functionality.
 -   Detailed database and API design decisions shall be documented in
     the TDD.
+
+## 9. Employer Teams
+
+Only Employer accounts may create or join an Employer Team. The creator
+becomes Owner. Team roles are separate from global account roles:
+
+| Team role | Permissions |
+| --------- | ----------- |
+| Owner | Manage Team settings and members; create and update Team jobs; delete jobs only when they have no applications; view and manage all Team applications; assign Reviewers |
+| Recruiter | Create and update Team jobs; view all Team applications; assign Reviewers; update final application statuses; no Team/member settings |
+| Reviewer | View only assigned applications; submit an internal recommendation; no status, job, assignment, or Team settings |
+
+Team jobs are public and display the Team name as employer. Personal
+Employer jobs and applications remain separate. Reviewers choose
+`Recommend`, `Not Recommend`, or `Need Further Consideration`. This internal
+recommendation and its review metadata are separate from the final application
+status and are not returned in Job Seeker history. Team applications do not
+accept or provide CV uploads. Archiving a Team hides its jobs from public
+listing and application routes, while preserving jobs, applications,
+memberships, and review history. Every Team API validates account role,
+membership, and Team role on the backend. Admins may inspect active and
+archived Team/member information from the admin dashboard but are not Team
+members.

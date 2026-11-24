@@ -60,6 +60,8 @@ An administrator can:
     affected, and when the activity happened.
 -   Search, filter, paginate, and review user account details, including
     available account activity and session information.
+-   View Employer Teams, their Owners, and members in the admin dashboard.
+    Admins remain platform-level accounts and are not Team members.
 -   Ban and unban users with a required ban reason, change user roles,
     revoke individual sessions, and apply supported bulk ban/unban actions.
 -   Prevent administrators from banning themselves or changing their own
@@ -69,7 +71,6 @@ An administrator can:
 -   Review searchable audit records and security events, including failed
     login activity grouped by IP address and account.
 -   Export filtered user, content, and audit records as CSV.
--   View user group memberships when Groups/Teams are available.
 -   View and manage user accounts.
 -   View and moderate job postings.
 
@@ -246,8 +247,8 @@ access, application management, and the required security features.
     days.
 -   **FR-16:** Administrators shall be able to search users by name or
     email, filter by role and account status, paginate results, and view
-    account details, available activity, and session metadata. Group
-    memberships shall be shown when Groups/Teams are implemented.
+    account details, available activity, session metadata, and Team
+    memberships.
 -   **FR-17:** Administrators shall be able to ban/unban users, change
     roles, revoke individual sessions, and perform validated bulk
     ban/unban operations. Ban operations shall require a reason and
@@ -270,6 +271,31 @@ access, application management, and the required security features.
 -   **FR-22:** Administrators shall be able to export filtered user,
     supported content, and audit records as CSV. Exported data shall not
     contain passwords, password hashes, access tokens, or refresh tokens.
+-   **FR-23:** Only Employer accounts shall create or join Teams. The
+    creator shall become Owner. Job Seekers and Administrators shall not
+    join Employer Teams.
+-   **FR-24:** Owners shall add existing Employer accounts as Recruiters
+    or Reviewers, change member roles, remove members, rename Teams, and
+    archive Teams. Archiving shall preserve jobs, applications, members,
+    and review history while hiding Team jobs from public listings.
+    Recruiters and Reviewers shall not manage Team settings or members.
+-   **FR-25:** Owners and Recruiters shall create and update Team jobs;
+    only Owners may delete a Team job that has no applications. Team jobs
+    shall be publicly listed with the Team name as employer while the Team
+    is active. Personal job management shall remain separate.
+-   **FR-26:** Owners and Recruiters shall view all Team applications
+    and assign Reviewers. Reviewers shall see only applications assigned
+    to them and may submit one of the defined internal recommendations.
+    Owners and Recruiters shall manage application status separately;
+    recommendations shall not change or be exposed as the Job Seeker's
+    application status.
+-   **FR-27:** Team applications shall not require, accept, or expose CV
+    uploads. Reviewers shall receive application information only for
+    assignments made to them.
+-   **FR-28:** Admins shall have a separate, read-only Groups dashboard
+    showing active and archived groups, owners, member roles, and Team job
+    and application totals. Admins shall not receive Team membership or Team
+    hiring permissions.
 
 ## 9. Non-Functional Requirements
 
@@ -295,6 +321,8 @@ The project will be considered successful when:
 -   Employers can create, view, edit, and delete their own job postings.
 -   Job seekers can apply for jobs.
 -   Employers can review applications and update their status.
+-   Employers can collaborate through Teams with backend-enforced role
+    permissions while personal job workflows remain available.
 -   The system enforces the required roles, permissions, and security
     scopes.
 -   Users cannot perform operations they are not authorized to perform.

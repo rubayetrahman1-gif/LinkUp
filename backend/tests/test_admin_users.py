@@ -96,6 +96,12 @@ def test_admin_user_details_include_safe_sessions_and_account_activity(
     seeker = register_user(client, "seeker@example.com", "job_seeker")
     employer_headers = login_headers(client, "employer@example.com")
     seeker_headers = login_headers(client, "seeker@example.com")
+    team_response = client.post(
+        "/api/teams",
+        headers=employer_headers,
+        json={"name": "Design Hiring"},
+    )
+    assert team_response.status_code == 201
 
     job_response = client.post(
         "/api/jobs",
@@ -131,9 +137,15 @@ def test_admin_user_details_include_safe_sessions_and_account_activity(
     assert "token_hash" not in str(employer_data)
     assert "password_hash" not in str(employer_data)
     assert employer_data["groups"] == {
-        "available": False,
-        "memberships": [],
+        "available": True,
+        "memberships": [
+            {"id": team_response.json()["id"], "name": "Design Hiring", "role": "owner"}
+        ],
     }
+
+    teams_response = client.get("/api/admin/teams", headers=admin_headers)
+    assert teams_response.status_code == 200
+    assert teams_response.json()["items"][0]["members"][0]["role"] == "owner"
 
     seeker_details = client.get(
         f"/api/admin/users/{seeker['id']}",
@@ -163,6 +175,7 @@ def test_admin_user_management_endpoints_require_admin(client):
     assert client.get(
         f"/api/admin/users/{seeker['id']}", headers=seeker_headers
     ).status_code == 403
+    assert client.get("/api/admin/teams", headers=seeker_headers).status_code == 403
 
 
 def test_user_list_validates_pagination_limits(client, test_db):

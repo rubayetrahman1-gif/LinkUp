@@ -14,6 +14,7 @@ from routers import (
     applications,
     auth,
     jobs,
+    teams,
     users,
 )
 
@@ -36,6 +37,7 @@ def test_db():
     original_auth_session = auth.SessionLocal
     original_users_session = users.SessionLocal
     original_jobs_session = jobs.SessionLocal
+    original_teams_session = teams.SessionLocal
     original_applications_session = applications.SessionLocal
     original_admin_session = admin.SessionLocal
     original_admin_audit_session = admin_audit.SessionLocal
@@ -45,6 +47,7 @@ def test_db():
     auth.SessionLocal = TestingSessionLocal
     users.SessionLocal = TestingSessionLocal
     jobs.SessionLocal = TestingSessionLocal
+    teams.SessionLocal = TestingSessionLocal
     applications.SessionLocal = TestingSessionLocal
     admin.SessionLocal = TestingSessionLocal
     admin_audit.SessionLocal = TestingSessionLocal
@@ -59,6 +62,7 @@ def test_db():
         auth.SessionLocal = original_auth_session
         users.SessionLocal = original_users_session
         jobs.SessionLocal = original_jobs_session
+        teams.SessionLocal = original_teams_session
         applications.SessionLocal = original_applications_session
         admin.SessionLocal = original_admin_session
         admin_audit.SessionLocal = original_admin_audit_session
