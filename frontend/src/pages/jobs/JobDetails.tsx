@@ -193,15 +193,17 @@ function JobDetails() {
                   </div>
                 </dl>
                 {hasAccessToken && userRole === "job_seeker" && (
-                  <button
-                    className="button"
-                    type="button"
-                    onClick={handleApply}
-                    disabled={applying}
-                  >
-                    {applying ? "Applying..." : "Apply Now"}
-                    {!applying && <span aria-hidden="true"> →</span>}
-                  </button>
+                  <>
+                    <button
+                      className="button"
+                      type="button"
+                      onClick={handleApply}
+                      disabled={applying}
+                    >
+                      {applying ? "Applying..." : "Apply Now"}
+                      {!applying && <span aria-hidden="true"> →</span>}
+                    </button>
+                  </>
                 )}
                 {!hasAccessToken && (
                   <>

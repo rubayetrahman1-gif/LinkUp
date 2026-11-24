@@ -1,8 +1,9 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 
 from database import SessionLocal
-from models import User, Job
+from models import User, Job, Team
 from schemas import JobCreate, JobUpdate, JobResponse
 from rbac import Permission, require_permission
 
@@ -41,7 +42,13 @@ def create_job(
 @router.get("", response_model=list[JobResponse])
 def get_all_jobs():
     with SessionLocal() as db:
-        jobs = db.query(Job).order_by(Job.id.desc()).all()
+        jobs = (
+            db.query(Job)
+            .outerjoin(Team, Job.team_id == Team.id)
+            .filter(or_(Job.team_id.is_(None), Team.deleted_at.is_(None)))
+            .order_by(Job.id.desc())
+            .all()
+        )
         return jobs
 
 
@@ -52,7 +59,8 @@ def get_my_jobs(
 ):
     with SessionLocal() as db:
         jobs = db.query(Job).filter(
-            Job.employer_id == current_user.id
+            Job.employer_id == current_user.id,
+            Job.team_id.is_(None),
         ).order_by(Job.id.desc()).all()
 
         return jobs
@@ -62,9 +70,15 @@ def get_my_jobs(
 @router.get("/{job_id}", response_model=JobResponse)
 def get_job_by_id(job_id: int):
     with SessionLocal() as db:
-        job = db.query(Job).filter(
-            Job.id == job_id
-        ).first()
+        job = (
+            db.query(Job)
+            .outerjoin(Team, Job.team_id == Team.id)
+            .filter(
+                Job.id == job_id,
+                or_(Job.team_id.is_(None), Team.deleted_at.is_(None)),
+            )
+            .first()
+        )
 
         if job is None:
             raise HTTPException(
@@ -84,7 +98,8 @@ def update_job(
 ):
     with SessionLocal() as db:
         job = db.query(Job).filter(
-            Job.id == job_id
+            Job.id == job_id,
+            Job.team_id.is_(None),
         ).first()
 
         if job is None:
@@ -118,7 +133,8 @@ def delete_job(
 ):
     with SessionLocal() as db:
         job = db.query(Job).filter(
-            Job.id == job_id
+            Job.id == job_id,
+            Job.team_id.is_(None),
         ).first()
 
         if job is None:

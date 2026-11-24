@@ -35,9 +35,7 @@ export interface EmployerApplication {
 }
 
 // Submit an application for a job
-export async function applyForJob(
-  jobId: number
-): Promise<ApplicationResponse> {
+export async function applyForJob(jobId: number): Promise<ApplicationResponse> {
   return apiRequest<ApplicationResponse>(`/api/jobs/${jobId}/applications`, {
     method: "POST",
   });

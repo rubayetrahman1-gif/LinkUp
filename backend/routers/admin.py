@@ -2,12 +2,20 @@ from datetime import datetime, timedelta, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import aliased
 
 from audit import record_audit_event
 from database import SessionLocal
-from models import Application, AuditLog, Job, RefreshSession, User
+from models import (
+    Application,
+    AuditLog,
+    Job,
+    RefreshSession,
+    Team,
+    TeamMember,
+    User,
+)
 from rbac import Permission, require_permission
 from schemas import (
     AdminBulkUserAction,
@@ -160,8 +168,8 @@ def get_dashboard_overview(
                 "applications_by_status": application_statuses,
             },
             "groups": {
-                "available": False,
-                "total": None,
+                "available": True,
+                "total": db.query(Team).filter(Team.deleted_at.is_(None)).count(),
             },
             "last_7_days": {
                 "new_users": db.query(User)
@@ -172,6 +180,103 @@ def get_dashboard_overview(
                 .count(),
             },
             "recent_activity": recent_activity,
+        }
+
+
+@router.get("/teams")
+def list_admin_teams(
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=20, ge=1, le=100),
+    admin_user: User = Depends(
+        require_permission(Permission.READ_ADMIN_DASHBOARD)
+    ),
+):
+    with SessionLocal() as db:
+        total = db.query(Team).count()
+        active_group_total = (
+            db.query(func.count(Team.id))
+            .filter(Team.deleted_at.is_(None))
+            .scalar()
+            or 0
+        )
+        member_total = db.query(func.count(TeamMember.id)).scalar() or 0
+        team_job_total = (
+            db.query(func.count(Job.id))
+            .filter(Job.team_id.is_not(None))
+            .scalar()
+            or 0
+        )
+        team_application_total = (
+            db.query(func.count(Application.id))
+            .join(Job, Job.id == Application.job_id)
+            .filter(Job.team_id.is_not(None))
+            .scalar()
+            or 0
+        )
+        teams = (
+            db.query(Team, User)
+            .join(User, User.id == Team.owner_id)
+            .order_by(Team.created_at.desc(), Team.id.desc())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+            .all()
+        )
+        items = []
+        for team, owner in teams:
+            members = (
+                db.query(TeamMember, User)
+                .join(User, User.id == TeamMember.user_id)
+                .filter(TeamMember.team_id == team.id)
+                .order_by(TeamMember.joined_at, TeamMember.id)
+                .all()
+            )
+            items.append(
+                {
+                    "id": team.id,
+                    "name": team.name,
+                    "created_at": team.created_at,
+                    "deleted_at": team.deleted_at,
+                    "is_archived": team.deleted_at is not None,
+                    "owner": {
+                        "user_id": owner.id,
+                        "full_name": owner.full_name,
+                        "email": owner.email,
+                    },
+                    "members": [
+                        {
+                            "user_id": member.user_id,
+                            "full_name": member_user.full_name,
+                            "email": member_user.email,
+                            "role": member.role,
+                            "joined_at": member.joined_at,
+                        }
+                        for member, member_user in members
+                    ],
+                    "job_count": db.query(Job).filter(
+                        Job.team_id == team.id
+                    ).count(),
+                    "application_count": (
+                        db.query(Application)
+                        .join(Job, Job.id == Application.job_id)
+                        .filter(Job.team_id == team.id)
+                        .count()
+                    ),
+                }
+            )
+        return {
+            "summary": {
+                "groups_total": total,
+                "active_groups": active_group_total,
+                "archived_groups": total - active_group_total,
+                "members_total": member_total,
+                "team_jobs_total": team_job_total,
+                "team_applications_total": team_application_total,
+            },
+            "items": items,
+            "total": total,
+            "page": page,
+            "page_size": page_size,
+            "pages": (total + page_size - 1) // page_size,
         }
 
 
@@ -309,6 +414,14 @@ def get_user_details(
                 for application, job in applications
             )
 
+        memberships = (
+            db.query(Team, TeamMember.role)
+            .join(TeamMember, TeamMember.team_id == Team.id)
+            .filter(TeamMember.user_id == user.id)
+            .order_by(Team.name, Team.id)
+            .all()
+        )
+
         timed_activity = [
             item for item in activity if item["occurred_at"] is not None
         ]
@@ -351,8 +464,15 @@ def get_user_details(
                 for session in sessions
             ],
             "groups": {
-                "available": False,
-                "memberships": [],
+                "available": True,
+                "memberships": [
+                    {
+                        "id": team.id,
+                        "name": team.name,
+                        "role": role,
+                    }
+                    for team, role in memberships
+                ],
             },
         }
 
@@ -496,6 +616,34 @@ def update_user_role(
             )
 
         previous_role = user.role
+        if role_update.role != "employer":
+            owned_teams = db.query(Team.id).filter(
+                Team.owner_id == user.id,
+                Team.deleted_at.is_(None),
+            ).first()
+            if owned_teams is not None:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="An Employer must archive owned Teams before changing account role",
+                )
+            archived_job_ids = (
+                select(Job.id)
+                .join(Team, Team.id == Job.team_id)
+                .where(Team.deleted_at.is_not(None))
+            )
+            db.query(Application).filter(
+                Application.assigned_reviewer_id == user.id,
+                Application.job_id.notin_(archived_job_ids),
+            ).update(
+                {Application.assigned_reviewer_id: None},
+                synchronize_session=False,
+            )
+            db.query(TeamMember).filter(
+                TeamMember.user_id == user.id,
+                TeamMember.team_id.notin_(
+                    select(Team.id).where(Team.deleted_at.is_not(None))
+                ),
+            ).delete(synchronize_session=False)
         user.role = role_update.role
         if previous_role != role_update.role:
             record_audit_event(

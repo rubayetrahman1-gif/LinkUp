@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { PublicLayout } from "../../components/SiteLayout";
 import {
+  getAdminTeams,
   getAdminDashboardOverview,
   type AdminDashboardOverview,
+  type AdminTeamList,
 } from "../../services/adminService";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import { formatDateTime } from "../../dateTime";
@@ -12,6 +14,10 @@ function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retryCount, setRetryCount] = useState(0);
+  const [teamList, setTeamList] = useState<AdminTeamList | null>(null);
+  const [teamsPage, setTeamsPage] = useState(1);
+  const [teamsError, setTeamsError] = useState("");
+  const [teamsRefreshCount, setTeamsRefreshCount] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -41,6 +47,23 @@ function AdminDashboard() {
       active = false;
     };
   }, [retryCount]);
+
+  useEffect(() => {
+    let active = true;
+    const loadTeams = async () => {
+      setTeamsError("");
+      try {
+        const data = await getAdminTeams(teamsPage, 20);
+        if (active) setTeamList(data);
+      } catch (requestError) {
+        if (active) {
+          setTeamsError(requestError instanceof Error ? requestError.message : "Could not load Teams.");
+        }
+      }
+    };
+    void loadTeams();
+    return () => { active = false; };
+  }, [teamsPage, teamsRefreshCount]);
 
   return (
     <PublicLayout>
@@ -131,6 +154,10 @@ function AdminDashboard() {
                     <span>Applications</span>
                     <strong>{overview.content.applications}</strong>
                   </article>
+                  <article className="dashboard-stat">
+                    <span>Groups</span>
+                    <strong>{overview.groups.total ?? 0}</strong>
+                  </article>
                 </div>
               </section>
 
@@ -166,11 +193,74 @@ function AdminDashboard() {
                       )
                     : <p className="admin-muted">No applications have been submitted.</p>}
                 </div>
-                <div className="admin-groups-note" role="note">
-                  {overview.groups.available
-                    ? `Groups: ${overview.groups.total ?? 0}`
-                    : "Group statistics are unavailable because Groups/Teams are not implemented yet."}
+              </section>
+
+              <section className="admin-dashboard-section" aria-labelledby="group-information-heading">
+                <div className="panel-heading admin-group-heading">
+                  <h2 id="group-information-heading">Group Management</h2>
+                  <button
+                    className="button button-secondary"
+                    type="button"
+                    onClick={() => setTeamsRefreshCount((count) => count + 1)}
+                  >
+                    Refresh group data
+                  </button>
                 </div>
+                {teamsError && <p className="status-message" role="alert">{teamsError}</p>}
+                {!teamList && !teamsError && (
+                  <div className="loading-state" role="status">Loading group information...</div>
+                )}
+                {teamList && (
+                  <>
+                    <div className="admin-overview-grid admin-group-stats">
+                      <article className="dashboard-stat"><span>Total groups</span><strong>{teamList.summary.groups_total}</strong></article>
+                      <article className="dashboard-stat"><span>Active groups</span><strong>{teamList.summary.active_groups}</strong></article>
+                      <article className="dashboard-stat"><span>Archived groups</span><strong>{teamList.summary.archived_groups}</strong></article>
+                      <article className="dashboard-stat"><span>Memberships</span><strong>{teamList.summary.members_total}</strong></article>
+                      <article className="dashboard-stat"><span>Team jobs</span><strong>{teamList.summary.team_jobs_total}</strong></article>
+                      <article className="dashboard-stat"><span>Team applications</span><strong>{teamList.summary.team_applications_total}</strong></article>
+                    </div>
+                    {teamList.items.length > 0 ? (
+                      <div className="admin-team-list">
+                        {teamList.items.map((team) => (
+                          <article className="admin-team-card" key={team.id}>
+                            <div className="admin-team-card-heading">
+                              <div>
+                                <h3>{team.name}</h3>
+                                <span>Group #{team.id} · Created {formatDateTime(team.created_at)}</span>
+                                <span>Owner: {team.owner.full_name} · {team.owner.email}</span>
+                              </div>
+                              <span className="portal-type">
+                                {team.is_archived ? "Archived" : `${team.members.length} members`}
+                              </span>
+                            </div>
+                            <p>{team.job_count} jobs · {team.application_count} applications</p>
+                            <ul>
+                              {team.members.map((member) => (
+                                <li key={member.user_id}>
+                                  <span>
+                                    {member.full_name}{" "}
+                                    <small>({member.role} · joined {formatDateTime(member.joined_at)})</small>
+                                  </span>
+                                  <a href={`mailto:${member.email}`}>{member.email}</a>
+                                </li>
+                              ))}
+                            </ul>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="admin-muted">No groups have been created.</p>
+                    )}
+                    {teamList.pages > 1 && (
+                      <div className="admin-pagination" aria-label="Group pages">
+                        <button className="button button-secondary" type="button" disabled={teamsPage <= 1} onClick={() => setTeamsPage((page) => page - 1)}>Previous</button>
+                        <span>Page {teamList.page} of {teamList.pages}</span>
+                        <button className="button button-secondary" type="button" disabled={teamsPage >= teamList.pages} onClick={() => setTeamsPage((page) => page + 1)}>Next</button>
+                      </div>
+                    )}
+                  </>
+                )}
               </section>
 
               <section className="admin-dashboard-section" aria-labelledby="recent-activity-heading">

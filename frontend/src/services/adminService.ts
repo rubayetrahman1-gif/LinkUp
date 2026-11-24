@@ -35,6 +35,44 @@ export interface AdminDashboardOverview {
   }[];
 }
 
+export interface AdminTeamMember {
+  user_id: number;
+  full_name: string;
+  email: string;
+  role: "owner" | "recruiter" | "reviewer";
+  joined_at: string;
+}
+
+export interface AdminTeamList {
+  summary: {
+    groups_total: number;
+    active_groups: number;
+    archived_groups: number;
+    members_total: number;
+    team_jobs_total: number;
+    team_applications_total: number;
+  };
+  items: {
+    id: number;
+    name: string;
+    created_at: string;
+    deleted_at: string | null;
+    is_archived: boolean;
+    owner: {
+      user_id: number;
+      full_name: string;
+      email: string;
+    };
+    members: AdminTeamMember[];
+    job_count: number;
+    application_count: number;
+  }[];
+  total: number;
+  page: number;
+  page_size: number;
+  pages: number;
+}
+
 export type AdminRole = "job_seeker" | "employer" | "admin";
 export type AdminUserStatus = "active" | "inactive" | "banned";
 
@@ -80,7 +118,7 @@ export interface AdminUserDetails {
   }[];
   groups: {
     available: boolean;
-    memberships: { id: number; name: string }[];
+    memberships: { id: number; name: string; role: string }[];
   };
 }
 
@@ -150,6 +188,17 @@ export interface AdminSecurityOverview {
 
 export async function getAdminDashboardOverview(): Promise<AdminDashboardOverview> {
   return apiRequest<AdminDashboardOverview>("/api/admin/dashboard/overview");
+}
+
+export function getAdminTeams(
+  page: number,
+  pageSize: number,
+): Promise<AdminTeamList> {
+  const params = new URLSearchParams({
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  return apiRequest<AdminTeamList>(`/api/admin/teams?${params.toString()}`);
 }
 
 export async function getAdminUsers(filters: {

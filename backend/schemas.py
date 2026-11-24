@@ -82,6 +82,7 @@ class JobResponse(BaseModel):
     employment_type: str
     salary: str | None
     employer_id: int
+    team_id: int | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -95,6 +96,51 @@ class PasswordChange(BaseModel):
 
 class ApplicationStatusUpdate(BaseModel):
     status: Literal["Pending", "Under Review", "Accepted", "Rejected"]
+
+
+class TeamCreate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def trim_team_name(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class TeamUpdate(BaseModel):
+    name: str = Field(min_length=2, max_length=100)
+
+    @field_validator("name", mode="before")
+    @classmethod
+    def trim_team_name(cls, value: str) -> str:
+        if isinstance(value, str):
+            return value.strip()
+        return value
+
+
+class TeamMemberCreate(BaseModel):
+    email: EmailStr
+    role: Literal["recruiter", "reviewer"]
+
+
+class TeamMemberUpdate(BaseModel):
+    role: Literal["recruiter", "reviewer"]
+
+
+class TeamApplicationAssignment(BaseModel):
+    reviewer_id: int | None
+
+
+class TeamApplicationReview(BaseModel):
+    recommendation: Literal[
+        "Recommend",
+        "Not Recommend",
+        "Need Further Consideration",
+    ]
+
+    model_config = {"extra": "forbid"}
 
 
 class AdminUserRoleUpdate(BaseModel):

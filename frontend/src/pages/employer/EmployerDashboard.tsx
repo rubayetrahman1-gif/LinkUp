@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Brand } from "../../components/SiteLayout";
 import { getCurrentUser, logoutUser } from "../../services/authService";
@@ -7,22 +8,32 @@ import type { User } from "../../types/auth";
 import type { Job } from "../../types/job";
 import { useAuth } from "../../context/useAuth";
 import { formatDate } from "../../dateTime";
+import { createTeam, getMyTeams } from "../../services/teamService";
+import type { TeamSummary } from "../../services/teamService";
 
 function EmployerDashboard() {
   const navigate = useNavigate();
   const { setUser: setAuthenticatedUser } = useAuth();
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [teams, setTeams] = useState<TeamSummary[]>([]);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [profileError, setProfileError] = useState("");
   const [notice, setNotice] = useState("");
+  const [teamName, setTeamName] = useState("");
+  const [teamError, setTeamError] = useState("");
+  const [creatingTeam, setCreatingTeam] = useState(false);
 
   useEffect(() => {
     let active = true;
 
     const fetchData = async () => {
-      const [jobsResult, profileResult] = await Promise.allSettled([getMyJobs(), getCurrentUser()]);
+      const [jobsResult, profileResult, teamsResult] = await Promise.allSettled([
+        getMyJobs(),
+        getCurrentUser(),
+        getMyTeams(),
+      ]);
       if (!active) return;
 
       if (jobsResult.status === "fulfilled") {
@@ -36,6 +47,11 @@ function EmployerDashboard() {
       } else {
         setProfileError(profileResult.reason instanceof Error ? profileResult.reason.message : "Could not load your profile.");
       }
+      if (teamsResult.status === "fulfilled") {
+        setTeams(teamsResult.value);
+      } else {
+        setTeamError(teamsResult.reason instanceof Error ? teamsResult.reason.message : "Could not load your Teams.");
+      }
 
       setLoading(false);
     };
@@ -43,6 +59,21 @@ function EmployerDashboard() {
     void fetchData();
     return () => { active = false; };
   }, []);
+
+  const handleCreateTeam = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setTeamError("");
+    setCreatingTeam(true);
+    try {
+      const team = await createTeam(teamName);
+      setTeams((current) => [team, ...current]);
+      setTeamName("");
+    } catch (requestError) {
+      setTeamError(requestError instanceof Error ? requestError.message : "Could not create this Team.");
+    } finally {
+      setCreatingTeam(false);
+    }
+  };
 
   const handleDelete = async (jobId: number) => {
     if (!window.confirm("Delete this job posting? This action cannot be undone.")) return;
@@ -78,6 +109,7 @@ const handleLogout = async () => {
 
         <nav className="portal-navigation" aria-label="Employer dashboard">
           <a className="portal-nav-item active" href="#my-jobs" aria-current="page"><span aria-hidden="true">▣</span> My Jobs</a>
+          <a className="portal-nav-item" href="#teams"><span aria-hidden="true">◫</span> Teams</a>
           <Link className="portal-nav-item" to="/employer/applications"><span aria-hidden="true">▤</span> Applications</Link>
           <Link className="portal-nav-item" to="/jobs"><span aria-hidden="true">⌕</span> Browse jobs</Link>
           <Link className="portal-nav-item" to="/settings">Account settings</Link>
@@ -162,6 +194,50 @@ const handleLogout = async () => {
                     ))}
                   </tbody>
                 </table>
+              </div>
+            )}
+          </section>
+          <section className="portal-jobs team-dashboard-section" id="teams">
+            <div className="portal-list-heading">
+              <div>
+                <h2>Hiring Teams</h2>
+                <p>Create a shared workspace or continue managing a Team you belong to.</p>
+              </div>
+              <span className="portal-count">{teams.length} {teams.length === 1 ? "Team" : "Teams"}</span>
+            </div>
+            {teamError && <p className="status-message" role="alert">{teamError}</p>}
+            <form className="team-create-form" onSubmit={(event) => void handleCreateTeam(event)}>
+              <label className="form-field" htmlFor="create-team-name">New Team name</label>
+              <input
+                id="create-team-name"
+                value={teamName}
+                onChange={(event) => setTeamName(event.target.value)}
+                minLength={2}
+                maxLength={100}
+                placeholder="e.g. Product Hiring"
+                required
+              />
+              <button className="button" type="submit" disabled={creatingTeam}>
+                {creatingTeam ? "Creating..." : "Create Team"}
+              </button>
+            </form>
+            {!teams.length ? (
+              <div className="empty-state portal-empty">
+                <h3>No Teams yet</h3>
+                <p>Create one to collaborate with other Employer accounts on hiring.</p>
+              </div>
+            ) : (
+              <div className="team-dashboard-grid">
+                {teams.map((team) => (
+                  <article className="team-dashboard-card" key={team.id}>
+                    <div className="team-dashboard-card-heading">
+                      <div><span className="eyebrow">{team.my_role}</span><h3>{team.name}</h3></div>
+                      <span className="portal-type">{team.member_count} members</span>
+                    </div>
+                    <p>{team.job_count} jobs · {team.application_count} applications</p>
+                    <Link className="button button-secondary" to={`/employer/teams/${team.id}`}>Open Team workspace <span aria-hidden="true">→</span></Link>
+                  </article>
+                ))}
               </div>
             )}
           </section>

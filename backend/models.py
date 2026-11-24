@@ -5,6 +5,7 @@ from sqlalchemy import (
     String,
     Integer,
     Boolean,
+    CheckConstraint,
     DateTime,
     ForeignKey,
     Index,
@@ -133,6 +134,12 @@ class Job(Base):
         ForeignKey("users.id"),
         nullable=False
     )
+    team_id: Mapped[int | None] = mapped_column(
+        "group_id",
+        ForeignKey("groups.id", ondelete="RESTRICT"),
+        nullable=True,
+        index=True,
+    )
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -147,6 +154,11 @@ class Application(Base):
             "job_id",
             "job_seeker_id",
             name="unique_job_application"
+        ),
+        CheckConstraint(
+            "review_recommendation IS NULL OR review_recommendation IN "
+            "('Recommend', 'Not Recommend', 'Need Further Consideration')",
+            name="application_review_recommendation_check",
         ),
     )
 
@@ -171,6 +183,76 @@ class Application(Base):
         default="Pending",
         nullable=False
     )
+    assigned_reviewer_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    review_recommendation: Mapped[str | None] = mapped_column(
+        String(40),
+        nullable=True,
+    )
+    reviewed_by_id: Mapped[int | None] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+    )
+    reviewed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+class Team(Base):
+    __tablename__ = "groups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id"),
+        nullable=False,
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+    )
+
+
+class TeamMember(Base):
+    __tablename__ = "group_members"
+    __table_args__ = (
+        UniqueConstraint("group_id", "user_id", name="unique_group_member"),
+        CheckConstraint(
+            "role IN ('owner', 'recruiter', 'reviewer')",
+            name="group_members_role_check",
+        ),
+        Index("ix_group_members_user_role", "user_id", "role"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    team_id: Mapped[int] = mapped_column(
+        "group_id",
+        ForeignKey("groups.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    user_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role: Mapped[str] = mapped_column(String(20), nullable=False)
+    joined_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
 class RefreshSession(Base):
     __tablename__ = "refresh_sessions"
 

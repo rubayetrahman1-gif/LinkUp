@@ -131,14 +131,18 @@ async function refreshAccessToken(
   return sharedRefresh;
 }
 
-export async function apiRequest<T = unknown>(
+async function authenticatedRequest(
   endpoint: string,
   options: RequestInit = {},
-): Promise<T> {
+): Promise<Response> {
   const sendRequest = (token: string | null) => {
     const headers = new Headers(options.headers);
 
-    headers.set("Content-Type", "application/json");
+    if (options.body instanceof FormData) {
+      headers.delete("Content-Type");
+    } else {
+      headers.set("Content-Type", "application/json");
+    }
 
     if (token) {
       headers.set("Authorization", `Bearer ${token}`);
@@ -182,6 +186,14 @@ export async function apiRequest<T = unknown>(
     }
   }
 
+  return response;
+}
+
+export async function apiRequest<T = unknown>(
+  endpoint: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const response = await authenticatedRequest(endpoint, options);
   const data = await parseResponse(response);
 
   if (!response.ok) {

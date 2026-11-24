@@ -10,6 +10,7 @@ import EditJob from "./pages/employer/EditJob";
 import ApplicationHistory from "./pages/jobs/ApplicationHistory";
 import ProfileSettings from "./pages/settings/ProfileSettings";
 import EmployerApplications from "./pages/employer/EmployerApplications";
+import TeamWorkspace from "./pages/employer/TeamWorkspace";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminUserDetails from "./pages/admin/AdminUserDetails";
@@ -59,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={["employer"]}>
               <EmployerApplications />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/employer/teams/:teamId"
+          element={
+            <ProtectedRoute allowedRoles={["employer"]}>
+              <TeamWorkspace />
             </ProtectedRoute>
           }
         />

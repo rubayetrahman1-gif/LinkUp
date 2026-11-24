@@ -1,9 +1,10 @@
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import or_
 from sqlalchemy.exc import IntegrityError
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from database import SessionLocal
-from models import User, Job, Application
+from models import User, Job, Application, Team
 from rbac import Permission, require_permission
 from schemas import ApplicationStatusUpdate
 
@@ -21,9 +22,15 @@ def apply_for_job(
     current_user: User = Depends(require_permission(Permission.APPLY_FOR_JOB))
 ):
     with SessionLocal() as db:
-        job = db.query(Job).filter(
-            Job.id == job_id
-        ).first()
+        job = (
+            db.query(Job)
+            .outerjoin(Team, Job.team_id == Team.id)
+            .filter(
+                Job.id == job_id,
+                or_(Job.team_id.is_(None), Team.deleted_at.is_(None)),
+            )
+            .first()
+        )
 
         if job is None:
             raise HTTPException(
@@ -45,7 +52,7 @@ def apply_for_job(
         new_application = Application(
             job_id=job_id,
             job_seeker_id=current_user.id,
-            status="Pending"
+            status="Pending",
         )
 
         try:
@@ -113,7 +120,10 @@ def get_employer_applications(
             db.query(Application, Job, User)
             .join(Job, Application.job_id == Job.id)
             .join(User, Application.job_seeker_id == User.id)
-            .filter(Job.employer_id == current_user.id)
+            .filter(
+                Job.employer_id == current_user.id,
+                Job.team_id.is_(None),
+            )
             .order_by(Application.id.desc())
             .all()
         )
@@ -150,6 +160,7 @@ def update_application_status(
             .filter(
                 Application.id == application_id,
                 Job.employer_id == current_user.id,
+                Job.team_id.is_(None),
             )
             .first()
         )

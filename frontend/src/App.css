@@ -1857,6 +1857,395 @@
   .portal-summary > div:last-child {
     display: none;
   }
+}
+
+.team-dashboard-section {
+  margin-top: 20px;
+}
+
+.team-create-form,
+.team-add-member-form {
+  display: flex;
+  align-items: end;
+  gap: 12px;
+  padding: 18px 21px;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.team-create-form .form-field,
+.team-add-member-form .form-field {
+  flex: 1;
+  margin: 0;
+  color: #536077;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.team-create-form input,
+.team-add-member-form input,
+.team-add-member-form select,
+.team-workspace .form-field input,
+.team-workspace .form-field select,
+.team-workspace .form-field textarea {
+  width: 100%;
+  min-height: 43px;
+  margin-top: 7px;
+  padding: 10px 12px;
+  border: 1px solid #dfe4ec;
+  border-radius: 9px;
+  background: #fff;
+  color: #303b50;
+  font: inherit;
+}
+
+.team-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 14px;
+  padding: 18px 21px;
+}
+
+.team-dashboard-card {
+  display: grid;
+  gap: 13px;
+  padding: 17px;
+  border: 1px solid #e7ebf2;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.team-dashboard-card-heading,
+.team-panel-heading,
+.team-application-heading,
+.team-review-footer,
+.team-danger-zone {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+}
+
+.team-dashboard-card h3,
+.team-application-card h3,
+.team-danger-zone h3 {
+  margin: 5px 0 0;
+  color: #273247;
+}
+
+.team-dashboard-card p {
+  margin: 0;
+  color: #788394;
+  font-size: 12px;
+}
+
+.team-dashboard-card .button {
+  justify-self: start;
+}
+
+.team-workspace {
+  padding-bottom: 55px;
+}
+
+.team-workspace-header {
+  padding: 24px 0 20px;
+}
+
+.team-workspace-header .page-title {
+  margin-bottom: 8px;
+}
+
+.team-section-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  margin: 22px 0;
+}
+
+.team-section-nav a {
+  padding: 8px 12px;
+  border: 1px solid #e3e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #52617a;
+  font-size: 12px;
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.team-section-nav a:hover {
+  border-color: #cbd6ed;
+  color: var(--accent);
+}
+
+.team-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.team-stat-grid article {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid #e7ebf2;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.team-stat-grid strong {
+  color: #273247;
+  font-size: 20px;
+  text-transform: capitalize;
+}
+
+.team-stat-grid span {
+  color: #8590a0;
+  font-size: 11px;
+}
+
+.team-panel {
+  margin-top: 18px;
+  overflow: hidden;
+  border: 1px solid #e4e8ef;
+  border-radius: 13px;
+  background: #fff;
+  scroll-margin-top: 90px;
+}
+
+.team-panel-heading {
+  padding: 19px 21px;
+  border-bottom: 1px solid #e9edf3;
+}
+
+.team-panel-heading h2 {
+  margin: 4px 0 0;
+  color: #273247;
+  font-size: 19px;
+}
+
+.team-panel-heading p {
+  margin: 6px 0 0;
+  color: #8992a0;
+  font-size: 12px;
+}
+
+.team-job-form {
+  margin: 18px;
+}
+
+.team-job-form h3 {
+  margin: 0 0 18px;
+  color: #273247;
+}
+
+.team-workspace .form-field textarea {
+  min-height: 115px;
+  resize: vertical;
+}
+
+.team-workspace .form-field input[readonly] {
+  background: #f7f8fb;
+}
+
+.team-panel > .empty-state {
+  margin: 18px;
+}
+
+.team-row-actions {
+  white-space: nowrap;
+}
+
+.team-application-list {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.team-application-card {
+  display: grid;
+  gap: 15px;
+  padding: 17px;
+  border: 1px solid #e7ebf2;
+  border-radius: 12px;
+}
+
+.team-application-heading h3 {
+  margin: 5px 0;
+}
+
+.team-application-heading a,
+.team-application-card a {
+  color: var(--accent);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.team-application-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.team-application-controls .form-field {
+  min-width: 190px;
+  margin: 0;
+  color: #536077;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.team-assignment-note {
+  margin: 0;
+  color: #788394;
+  font-size: 12px;
+}
+
+.team-review-footer {
+  justify-content: flex-end;
+}
+
+.team-review-footer small {
+  margin-right: auto;
+  color: #8590a0;
+}
+
+.team-settings-panel {
+  border-color: #eadede;
+}
+
+.team-danger-zone {
+  margin: 20px;
+  padding: 17px;
+  border: 1px solid #f0d7d7;
+  border-radius: 11px;
+  background: #fffafa;
+}
+
+.team-danger-zone h3 {
+  margin: 0 0 5px;
+}
+
+.team-danger-zone p {
+  margin: 0;
+  color: #8992a0;
+  font-size: 12px;
+}
+
+.admin-team-list {
+  display: grid;
+  gap: 12px;
+  padding: 18px 20px;
+}
+
+.admin-team-card {
+  padding: 17px;
+  border: 1px solid #e6eaf1;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-team-card-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-team-card h3 {
+  margin: 0 0 6px;
+  color: #273247;
+}
+
+.admin-team-card-heading span:not(.portal-type),
+.admin-team-card p {
+  color: #7d8797;
+  font-size: 12px;
+}
+
+.admin-team-card p {
+  margin: 12px 0;
+}
+
+.admin-team-card ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.admin-team-card li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 9px;
+  border-top: 1px solid #edf0f4;
+  color: #46536a;
+  font-size: 12px;
+}
+
+.admin-team-card li small,
+.admin-team-card li a {
+  color: #7d8797;
+  font-size: 11px;
+}
+
+.admin-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.admin-group-stats {
+  margin-top: 16px;
+}
+
+.button-danger {
+  background: #a63737;
+}
+
+.button-danger:hover {
+  background: #8e2c2c;
+}
+
+@media (max-width: 640px) {
+  .admin-group-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-create-form,
+  .team-add-member-form {
+    align-items: stretch;
+    flex-direction: column;
+    padding: 15px;
+  }
+
+  .team-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .team-dashboard-grid {
+    padding: 14px;
+  }
+
+  .team-panel-heading {
+    align-items: flex-start;
+  }
+
+  .team-application-heading,
+  .team-danger-zone {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .team-review-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
 
   .portal-table {
     min-width: 820px;
