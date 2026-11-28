@@ -74,9 +74,16 @@ function AdminAudit() {
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
-          <h1 className="page-title">Audit log</h1>
-          <p className="page-subtitle">Review recorded authentication and administrative actions.</p>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
+              <h1 className="page-title">Audit log</h1>
+              <p className="page-subtitle">Trace recorded authentication, team, and administrative actions.</p>
+            </div>
+            {logs && (
+              <span className="portal-count">{logs.total} event(s) found</span>
+            )}
+          </div>
           <AdminNavigation />
 
           <form className="admin-audit-filters" onSubmit={applyFilters}>
@@ -119,43 +126,44 @@ function AdminAudit() {
           )}
           {!loading && !error && logs && logs.items.length > 0 && (
             <>
-              <p className="admin-user-count">{logs.total} event(s) found</p>
-              <div className="portal-table-scroll">
-                <table className="portal-table admin-audit-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Time</th>
-                      <th scope="col">Action</th>
-                      <th scope="col">Actor</th>
-                      <th scope="col">Target</th>
-                      <th scope="col">IP address</th>
-                      <th scope="col">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>{formatDateTime(item.created_at)}</td>
-                        <td><code>{item.action}</code></td>
-                        <td>{item.actor_name || "System / unauthenticated"}</td>
-                        <td>
-                          {item.target_user_name || item.target_id || "—"}
-                          {item.target_type && <span className="admin-table-subtext">{item.target_type}</span>}
-                        </td>
-                        <td>{item.ip_address || "Unknown"}</td>
-                        <td>
-                          <details>
-                            <summary>View</summary>
-                            <pre className="admin-audit-details">
-                              {JSON.stringify(item.details ?? {}, null, 2)}
-                            </pre>
-                            <span className="admin-table-subtext">{item.user_agent || "User agent not recorded"}</span>
-                          </details>
-                        </td>
+              <div className="admin-table-card">
+                <div className="portal-table-scroll">
+                  <table className="portal-table admin-audit-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Time</th>
+                        <th scope="col">Action</th>
+                        <th scope="col">Actor</th>
+                        <th scope="col">Target</th>
+                        <th scope="col">IP address</th>
+                        <th scope="col">Details</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {logs.items.map((item) => (
+                        <tr key={item.id}>
+                          <td>{formatDateTime(item.created_at)}</td>
+                          <td><span className="status-pill status-pill-info"><code>{item.action}</code></span></td>
+                          <td>{item.actor_name || "System / unauthenticated"}</td>
+                          <td>
+                            <strong>{item.target_user_name || item.target_id || "—"}</strong>
+                            {item.target_type && <span className="admin-table-subtext">{item.target_type}</span>}
+                          </td>
+                          <td>{item.ip_address || "Unknown"}</td>
+                          <td>
+                            <details>
+                              <summary style={{ cursor: "pointer", fontWeight: 600 }}>View payload</summary>
+                              <pre className="admin-audit-details">
+                                {JSON.stringify(item.details ?? {}, null, 2)}
+                              </pre>
+                              <span className="admin-table-subtext">{item.user_agent || "User agent not recorded"}</span>
+                            </details>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div className="admin-pagination" aria-label="Audit log pagination">
                 <button className="button button-secondary" type="button" disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)}>Previous</button>

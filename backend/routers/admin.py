@@ -503,6 +503,11 @@ def ban_user(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found",
             )
+        if user.role == "admin":
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Administrators cannot ban other administrators",
+            )
         if user.is_banned:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
@@ -744,6 +749,11 @@ def bulk_update_users(
         affected_count = 0
         for user in users:
             if action_request.action == "ban":
+                if user.role == "admin":
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Administrators cannot ban other administrators",
+                    )
                 user.is_banned = True
                 user.is_active = False
                 user.ban_reason = action_request.reason

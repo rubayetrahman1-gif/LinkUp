@@ -78,9 +78,13 @@ function AdminExports() {
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
-          <h1 className="page-title">Data exports</h1>
-          <p className="page-subtitle">Download filtered user, content, or audit data as CSV.</p>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
+              <h1 className="page-title">Data exports</h1>
+              <p className="page-subtitle">Download filtered user, job, application, or audit records as UTF-8 CSV.</p>
+            </div>
+          </div>
           <AdminNavigation />
 
           <form className="admin-export-form" onSubmit={(event) => void downloadExport(event)}>
@@ -163,12 +167,14 @@ function AdminExports() {
             </button>
           </form>
 
-          {error && <div className="empty-state" role="alert">{error}</div>}
+          {error && <div className="status-message" role="alert">{error}</div>}
           {success && <div className="admin-action-success" role="status">{success}</div>}
-          <p className="admin-muted admin-export-note">
-            Passwords, password hashes, access tokens, and refresh tokens are never included.
-            Each completed export is recorded in the audit log.
-          </p>
+          <div className="admin-panel" style={{ marginTop: 20 }}>
+            <p className="admin-muted admin-export-note" style={{ margin: 0 }}>
+              Passwords, password hashes, access tokens, and refresh tokens are never included.
+              Each completed export is automatically recorded in the audit log.
+            </p>
+          </div>
         </div>
       </main>
     </PublicLayout>

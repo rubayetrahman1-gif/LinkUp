@@ -4,6 +4,7 @@ import { AdminNavigation } from "../../components/AdminNavigation";
 import { PublicLayout } from "../../components/SiteLayout";
 import { useAuth } from "../../context/useAuth";
 import { formatDateTime } from "../../dateTime";
+import { getStatusPillClass } from "../../components/jobUtils";
 import {
   banAdminUser,
   getAdminUserDetails,
@@ -89,15 +90,37 @@ function AdminUserDetails() {
     }
   };
 
+  const accountStatus = details
+    ? details.user.is_banned
+      ? "Banned"
+      : details.user.is_active
+        ? "Active"
+        : "Inactive"
+    : "";
+
   return (
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow">
-            <span className="eyebrow-dot" />
-            ADMIN WORKSPACE
-          </span>
-          <h1 className="page-title">User details</h1>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" />
+                ADMIN WORKSPACE
+              </span>
+              <h1 className="page-title">
+                {details ? details.user.full_name : "User details"}
+              </h1>
+              <p className="page-subtitle">
+                {details ? details.user.email : "Inspect account status, role controls, sessions, and activity."}
+              </p>
+            </div>
+            {details && (
+              <span className={getStatusPillClass(accountStatus)}>
+                {accountStatus}
+              </span>
+            )}
+          </div>
           <AdminNavigation />
           <Link className="back-link" to="/admin/users">
             <span aria-hidden="true">←</span> Back to users
@@ -117,13 +140,14 @@ function AdminUserDetails() {
           {!loading && !error && details && (
             <>
               {(actionError || success) && (
-                <div className={actionError ? "empty-state" : "admin-action-success"} role={actionError ? "alert" : "status"}>
+                <div className={actionError ? "status-message" : "admin-action-success"} role={actionError ? "alert" : "status"}>
                   {actionError || success}
                 </div>
               )}
               <section className="admin-detail-section" aria-labelledby="account-details-heading">
                 <div className="panel-heading">
                   <h2 id="account-details-heading">Account information</h2>
+                  <span className="portal-type">{details.user.role.replaceAll("_", " ")}</span>
                 </div>
                 <dl className="admin-detail-grid">
                   <div><dt>Name</dt><dd>{details.user.full_name}</dd></div>
@@ -132,11 +156,7 @@ function AdminUserDetails() {
                   <div>
                     <dt>Status</dt>
                     <dd>
-                      {details.user.is_banned
-                        ? "Banned"
-                        : details.user.is_active
-                          ? "Active"
-                          : "Inactive"}
+                      <span className={getStatusPillClass(accountStatus)}>{accountStatus}</span>
                     </dd>
                   </div>
                   {details.user.is_banned && (
@@ -246,7 +266,7 @@ function AdminUserDetails() {
                         />
                       </label>
                       <button
-                        className="button"
+                        className="button button-danger"
                         type="submit"
                         disabled={
                           pendingAction !== "" ||
@@ -264,31 +284,12 @@ function AdminUserDetails() {
                 </div>
               </section>
 
-              <section className="admin-detail-section" aria-labelledby="account-activity-heading">
-                <div className="panel-heading">
-                  <h2 id="account-activity-heading">Account activity</h2>
-                </div>
-                {details.activity.length > 0 ? (
-                  <ul className="admin-activity-list">
-                    {details.activity.map((activity) => (
-                      <li key={activity.id}>
-                        <span>{activity.description}</span>
-                        <time dateTime={activity.occurred_at ?? undefined}>
-                          {activity.occurred_at
-                            ? formatDateTime(activity.occurred_at)
-                            : "Time not tracked"}
-                        </time>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="admin-muted">No account activity is available.</p>
-                )}
-              </section>
-
               <section className="admin-detail-section" aria-labelledby="user-sessions-heading">
                 <div className="panel-heading">
                   <h2 id="user-sessions-heading">Sessions</h2>
+                  <span className="portal-count">
+                    {details.sessions.filter((session) => session.is_active).length} active
+                  </span>
                 </div>
                 {details.sessions.length > 0 ? (
                   <div className="portal-table-scroll">
@@ -314,11 +315,15 @@ function AdminUserDetails() {
                                 : "Not used"}
                             </td>
                             <td>{formatDateTime(session.expires_at)}</td>
-                            <td>{session.is_active ? "Active" : "Revoked/expired"}</td>
+                            <td>
+                              <span className={session.is_active ? "status-pill status-pill-success" : "status-pill status-pill-neutral"}>
+                                {session.is_active ? "Active" : "Revoked/expired"}
+                              </span>
+                            </td>
                             <td>
                               {session.is_active && (
                                 <button
-                                  className="button button-quiet"
+                                  className="portal-action portal-delete"
                                   type="button"
                                   disabled={pendingAction !== ""}
                                   onClick={() =>
@@ -343,18 +348,42 @@ function AdminUserDetails() {
                 )}
               </section>
 
-              <section className="admin-detail-section" aria-labelledby="group-memberships-heading">
-                <div className="panel-heading">
-                  <h2 id="group-memberships-heading">Group memberships</h2>
-                </div>
-                <p className="admin-muted">
-                  {details.groups.available
-                    ? details.groups.memberships.length > 0
-                      ? details.groups.memberships.map((group) => `${group.name} (${group.role})`).join(", ")
-                      : "No group memberships."
-                    : "Team membership information is unavailable."}
-                </p>
-              </section>
+              <div className="admin-dashboard-split">
+                <section className="admin-detail-section" style={{ marginTop: 0 }} aria-labelledby="account-activity-heading">
+                  <div className="panel-heading">
+                    <h2 id="account-activity-heading">Account activity</h2>
+                  </div>
+                  {details.activity.length > 0 ? (
+                    <ul className="admin-activity-list">
+                      {details.activity.map((activity) => (
+                        <li key={activity.id}>
+                          <span>{activity.description}</span>
+                          <time dateTime={activity.occurred_at ?? undefined}>
+                            {activity.occurred_at
+                              ? formatDateTime(activity.occurred_at)
+                              : "Time not tracked"}
+                          </time>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="admin-muted">No account activity is available.</p>
+                  )}
+                </section>
+
+                <section className="admin-detail-section" style={{ marginTop: 0 }} aria-labelledby="group-memberships-heading">
+                  <div className="panel-heading">
+                    <h2 id="group-memberships-heading">Group memberships</h2>
+                  </div>
+                  <p className="admin-muted">
+                    {details.groups.available
+                      ? details.groups.memberships.length > 0
+                        ? details.groups.memberships.map((group) => `${group.name} (${group.role})`).join(", ")
+                        : "No group memberships."
+                      : "Team membership information is unavailable."}
+                  </p>
+                </section>
+              </div>
             </>
           )}
         </div>

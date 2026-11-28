@@ -10,6 +10,7 @@ import { useAuth } from "../../context/useAuth";
 import { formatDate } from "../../dateTime";
 import { createTeam, getMyTeams } from "../../services/teamService";
 import type { TeamSummary } from "../../services/teamService";
+import { getStatusPillClass } from "../../components/jobUtils";
 
 function EmployerDashboard() {
   const navigate = useNavigate();
@@ -88,17 +89,19 @@ function EmployerDashboard() {
     }
   };
 
-const handleLogout = async () => {
-  try {
-    await logoutUser();
-  } catch (error) {
-    console.error("Logout request failed:", error);
-  } finally {
-    setAuthenticatedUser(null);
-    navigate("/");
-  }
-};
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+    } catch (logoutError) {
+      console.error("Logout request failed:", logoutError);
+    } finally {
+      setAuthenticatedUser(null);
+      navigate("/");
+    }
+  };
 
+  const totalTeamJobs = teams.reduce((sum, team) => sum + team.job_count, 0);
+  const totalTeamApplications = teams.reduce((sum, team) => sum + team.application_count, 0);
 
   return (
     <main className="employer-portal">
@@ -112,7 +115,7 @@ const handleLogout = async () => {
           <a className="portal-nav-item" href="#teams"><span aria-hidden="true">◫</span> Teams</a>
           <Link className="portal-nav-item" to="/employer/applications"><span aria-hidden="true">▤</span> Applications</Link>
           <Link className="portal-nav-item" to="/jobs"><span aria-hidden="true">⌕</span> Browse jobs</Link>
-          <Link className="portal-nav-item" to="/settings">Account settings</Link>
+          <Link className="portal-nav-item" to="/settings"><span aria-hidden="true">⚙</span> Account settings</Link>
         </nav>
 
         <div className="portal-account">
@@ -130,25 +133,52 @@ const handleLogout = async () => {
           <header className="portal-page-header">
             <div>
               <span className="eyebrow"><span className="eyebrow-dot" /> EMPLOYER WORKSPACE</span>
-              <h1>My Jobs</h1>
-              <p>Manage your job postings and keep your opportunities up to date.</p>
+              <h1>Employer Overview</h1>
+              <p>Manage personal job postings, track team workspaces, and review incoming candidates.</p>
             </div>
             <button className="button" onClick={() => navigate("/employer/create-job")}>
               <span aria-hidden="true">＋</span> Post New Job
             </button>
           </header>
 
+          {!loading && (
+            <div className="kpi-grid" aria-label="Employer metrics">
+              <article className="kpi-card">
+                <span>Personal jobs</span>
+                <strong>{jobs.length}</strong>
+                <small>Active solo postings</small>
+              </article>
+              <article className="kpi-card">
+                <span>Hiring teams</span>
+                <strong>{teams.length}</strong>
+                <small>Workspaces you belong to</small>
+              </article>
+              <article className="kpi-card">
+                <span>Team jobs</span>
+                <strong>{totalTeamJobs}</strong>
+                <small>Across all teams</small>
+              </article>
+              <article className="kpi-card">
+                <span>Team applicants</span>
+                <strong>{totalTeamApplications}</strong>
+                <small>Collaborative pipeline</small>
+              </article>
+            </div>
+          )}
+
           <section className="portal-jobs" id="my-jobs">
             <div className="portal-list-heading">
               <div>
-                <h2>Job postings</h2>
-                <p>Manage your job postings and view role details.</p>
+                <h2>Personal job postings</h2>
+                <p>Roles posted under your personal employer account.</p>
               </div>
-              {!loading && !error && <span className="portal-count">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}</span>}
+              {!loading && !error && (
+                <span className="portal-count">{jobs.length} {jobs.length === 1 ? "job" : "jobs"}</span>
+              )}
             </div>
 
-            {notice && <p className="status-success" role="status">{notice}</p>}
-            {error && <p className="status-message" role="alert">{error}</p>}
+            {notice && <p className="status-success" style={{ margin: "16px 24px 0" }} role="status">{notice}</p>}
+            {error && <p className="status-message" style={{ margin: "16px 24px 0" }} role="alert">{error}</p>}
             {loading && <div className="loading-state" role="status">Loading your job postings...</div>}
 
             {!loading && !error && jobs.length === 0 && (
@@ -169,6 +199,7 @@ const handleLogout = async () => {
                       <th scope="col">Company</th>
                       <th scope="col">Location</th>
                       <th scope="col">Employment</th>
+                      <th scope="col">Compensation</th>
                       <th scope="col">Posted</th>
                       <th scope="col">Actions</th>
                     </tr>
@@ -182,7 +213,8 @@ const handleLogout = async () => {
                         </td>
                         <td>{job.company_name}</td>
                         <td><span className="portal-location"><span aria-hidden="true">⌖</span>{job.location}</span></td>
-                        <td><span className="portal-type">{job.employment_type.replaceAll("_", " ")}</span></td>
+                        <td><span className="job-badge">{job.employment_type.replaceAll("_", " ")}</span></td>
+                        <td>{job.salary || <span className="admin-muted">Not specified</span>}</td>
                         <td>{formatDate(job.created_at)}</td>
                         <td>
                           <div className="portal-row-actions">
@@ -197,26 +229,29 @@ const handleLogout = async () => {
               </div>
             )}
           </section>
+
           <section className="portal-jobs team-dashboard-section" id="teams">
             <div className="portal-list-heading">
               <div>
                 <h2>Hiring Teams</h2>
-                <p>Create a shared workspace or continue managing a Team you belong to.</p>
+                <p>Create a shared workspace or open an existing Team to collaborate with recruiters and reviewers.</p>
               </div>
               <span className="portal-count">{teams.length} {teams.length === 1 ? "Team" : "Teams"}</span>
             </div>
-            {teamError && <p className="status-message" role="alert">{teamError}</p>}
+            {teamError && <p className="status-message" style={{ margin: "16px 24px 0" }} role="alert">{teamError}</p>}
             <form className="team-create-form" onSubmit={(event) => void handleCreateTeam(event)}>
-              <label className="form-field" htmlFor="create-team-name">New Team name</label>
-              <input
-                id="create-team-name"
-                value={teamName}
-                onChange={(event) => setTeamName(event.target.value)}
-                minLength={2}
-                maxLength={100}
-                placeholder="e.g. Product Hiring"
-                required
-              />
+              <div className="form-field">
+                <label htmlFor="create-team-name">New Team name</label>
+                <input
+                  id="create-team-name"
+                  value={teamName}
+                  onChange={(event) => setTeamName(event.target.value)}
+                  minLength={2}
+                  maxLength={100}
+                  placeholder="e.g. Product Hiring"
+                  required
+                />
+              </div>
               <button className="button" type="submit" disabled={creatingTeam}>
                 {creatingTeam ? "Creating..." : "Create Team"}
               </button>
@@ -231,11 +266,16 @@ const handleLogout = async () => {
                 {teams.map((team) => (
                   <article className="team-dashboard-card" key={team.id}>
                     <div className="team-dashboard-card-heading">
-                      <div><span className="eyebrow">{team.my_role}</span><h3>{team.name}</h3></div>
+                      <div>
+                        <span className={getStatusPillClass(team.my_role)}>{team.my_role}</span>
+                        <h3>{team.name}</h3>
+                      </div>
                       <span className="portal-type">{team.member_count} members</span>
                     </div>
                     <p>{team.job_count} jobs · {team.application_count} applications</p>
-                    <Link className="button button-secondary" to={`/employer/teams/${team.id}`}>Open Team workspace <span aria-hidden="true">→</span></Link>
+                    <Link className="button button-secondary" to={`/employer/teams/${team.id}`}>
+                      Open Team workspace <span aria-hidden="true">→</span>
+                    </Link>
                   </article>
                 ))}
               </div>

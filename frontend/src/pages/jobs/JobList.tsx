@@ -31,7 +31,7 @@ function JobList() {
       }
     };
 
-    fetchJobs();
+    void fetchJobs();
     return () => { active = false; };
   }, [reload]);
 
@@ -62,31 +62,53 @@ function JobList() {
     setSearchParams(params, { replace: true });
   };
 
+  const hasFilters = Boolean(search || location || employmentType);
+
   return (
     <PublicLayout>
       <main className="jobs-page">
         <div className="page-shell">
-          <span className="eyebrow"><span className="eyebrow-dot" /> Find your next</span>
-          <h1 className="page-title">Work that moves you forward.</h1>
-          <p className="page-subtitle">Explore thoughtful opportunities from teams ready to meet you. Your next chapter could be one search away.</p>
+          <div className="page-header-bar">
+            <div>
+              <span className="eyebrow"><span className="eyebrow-dot" /> Open roles</span>
+              <h1 className="page-title">Work that moves you forward.</h1>
+              <p className="page-subtitle">
+                Explore opportunities across teams ready to hire. Filter by title, company, location, or role type.
+              </p>
+            </div>
+            {!loading && !error && (
+              <span className="portal-count" role="status">
+                {filteredJobs.length} {filteredJobs.length === 1 ? "opportunity" : "opportunities"}
+              </span>
+            )}
+          </div>
 
-          <form className="search-panel" onSubmit={submitSearch}>
+          <form className="search-panel search-panel-jobs" onSubmit={submitSearch}>
             <label className="search-field">
               <span aria-hidden="true">⌕</span>
-              <input value={search} onChange={(event) => updateQuery("search", event.target.value)} placeholder="Job title, skill, or company" aria-label="Job title, skill, or company" />
+              <input
+                value={search}
+                onChange={(event) => updateQuery("search", event.target.value)}
+                placeholder="Job title, skill, or company"
+                aria-label="Job title, skill, or company"
+              />
             </label>
             <label className="search-field">
               <span aria-hidden="true">⌖</span>
-              <input value={location} onChange={(event) => updateQuery("location", event.target.value)} placeholder="City or remote" aria-label="Location" />
+              <input
+                value={location}
+                onChange={(event) => updateQuery("location", event.target.value)}
+                placeholder="City or remote"
+                aria-label="Location"
+              />
             </label>
-            <button className="button" type="submit">Find jobs <span aria-hidden="true">→</span></button>
-          </form>
-
-          <div className="section-heading">
-            <div><h2 style={{ marginTop: 0 }}>Open opportunities</h2><p>{loading ? "Finding the right roles..." : error ? "Please try again shortly." : `${filteredJobs.length} ${filteredJobs.length === 1 ? "opportunity" : "opportunities"} to explore`}</p></div>
-            <label className="search-field" style={{ minWidth: 180 }}>
+            <label className="search-field">
               <span aria-hidden="true">☷</span>
-              <select aria-label="Employment type" value={employmentType} onChange={(event) => setEmploymentType(event.target.value)}>
+              <select
+                aria-label="Employment type"
+                value={employmentType}
+                onChange={(event) => setEmploymentType(event.target.value)}
+              >
                 <option value="">All job types</option>
                 <option value="full_time">Full time</option>
                 <option value="part_time">Part time</option>
@@ -94,18 +116,61 @@ function JobList() {
                 <option value="internship">Internship</option>
               </select>
             </label>
-          </div>
+            <button className="button" type="submit">
+              Find jobs <span aria-hidden="true">→</span>
+            </button>
+          </form>
+
+          {hasFilters && (
+            <div className="section-heading" style={{ marginBottom: 18 }}>
+              <p>
+                Showing filtered results
+                {search ? ` for “${search}”` : ""}
+                {location ? ` in ${location}` : ""}
+              </p>
+              <button
+                className="button button-quiet"
+                type="button"
+                onClick={() => {
+                  setEmploymentType("");
+                  setSearchParams({});
+                }}
+              >
+                Clear filters
+              </button>
+            </div>
+          )}
 
           {loading && <div className="loading-state" role="status">Loading opportunities...</div>}
-          {error && <div className="empty-state" role="alert"><h2>We couldn’t load the jobs</h2><p>{error}</p><button className="button" onClick={() => setReload((count) => count + 1)}>Try again</button></div>}
-          {!loading && !error && filteredJobs.length > 0 && <div className="job-grid">{filteredJobs.map((job) => <JobCard key={job.id} job={job} />)}</div>}
+          {error && (
+            <div className="empty-state" role="alert">
+              <h2>We couldn’t load the jobs</h2>
+              <p>{error}</p>
+              <button className="button" onClick={() => setReload((count) => count + 1)}>Try again</button>
+            </div>
+          )}
+          {!loading && !error && filteredJobs.length > 0 && (
+            <div className="job-grid">
+              {filteredJobs.map((job) => <JobCard key={job.id} job={job} />)}
+            </div>
+          )}
           {!loading && !error && filteredJobs.length === 0 && (
             <div className="empty-state">
               <h2>No matches just yet</h2>
               <p>Try a different title or location, or clear your filters to see every opportunity.</p>
-              {(search || location || employmentType) ? (
-                <button className="button button-secondary" onClick={() => { setEmploymentType(""); setSearchParams({}); }}>Clear filters</button>
-              ) : <Link className="button" to="/auth/register">Get job alerts</Link>}
+              {hasFilters ? (
+                <button
+                  className="button button-secondary"
+                  onClick={() => {
+                    setEmploymentType("");
+                    setSearchParams({});
+                  }}
+                >
+                  Clear filters
+                </button>
+              ) : (
+                <Link className="button" to="/auth/register">Get job alerts</Link>
+              )}
             </div>
           )}
         </div>

@@ -4,6 +4,7 @@ import { AdminNavigation } from "../../components/AdminNavigation";
 import { PublicLayout } from "../../components/SiteLayout";
 import { useAuth } from "../../context/useAuth";
 import { formatDate } from "../../dateTime";
+import { getStatusPillClass } from "../../components/jobUtils";
 import {
   bulkUpdateAdminUsers,
   getAdminUsers,
@@ -135,14 +136,23 @@ function AdminUsers() {
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow">
-            <span className="eyebrow-dot" />
-            ADMIN WORKSPACE
-          </span>
-          <h1 className="page-title">User management</h1>
-          <p className="page-subtitle">
-            Search and review registered LinkUp accounts.
-          </p>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" />
+                ADMIN WORKSPACE
+              </span>
+              <h1 className="page-title">User management</h1>
+              <p className="page-subtitle">
+                Search, filter, inspect, and enforce account controls across all registered LinkUp users.
+              </p>
+            </div>
+            {users && (
+              <span className="portal-count" role="status">
+                {users.total} {users.total === 1 ? "user" : "users"} found
+              </span>
+            )}
+          </div>
           <AdminNavigation />
 
           <form className="admin-user-filters" onSubmit={submitSearch}>
@@ -194,7 +204,7 @@ function AdminUsers() {
             </div>
           )}
           {(actionError || actionSuccess) && (
-            <div className={actionError ? "empty-state" : "admin-action-success"} role={actionError ? "alert" : "status"}>
+            <div className={actionError ? "status-message" : "admin-action-success"} role={actionError ? "alert" : "status"}>
               {actionError || actionSuccess}
             </div>
           )}
@@ -219,7 +229,7 @@ function AdminUsers() {
                   />
                 </label>
                 <button
-                  className="button"
+                  className="button button-danger"
                   type="button"
                   disabled={
                     actionLoading ||
@@ -242,65 +252,72 @@ function AdminUsers() {
                   {selectedIds.length} selected
                 </span>
               </section>
-              <p className="admin-user-count" role="status">
-                {users.total} {users.total === 1 ? "user" : "users"} found
-              </p>
-              <div className="portal-table-scroll">
-                <table className="portal-table admin-users-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">
-                        <input
-                          type="checkbox"
-                          aria-label="Select all users on this page"
-                          checked={allSelectableSelected}
-                          onChange={(event) => {
-                            setSelectedIds(
-                              event.target.checked
-                                ? selectableUsers.map((user) => user.id)
-                                : [],
-                            );
-                          }}
-                        />
-                      </th>
-                      <th scope="col">Name</th>
-                      <th scope="col">Email</th>
-                      <th scope="col">Role</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Joined</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {users.items.map((user) => (
-                      <tr key={user.id}>
-                        <td>
+              <div className="admin-table-card">
+                <div className="portal-table-scroll">
+                  <table className="portal-table admin-users-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">
                           <input
                             type="checkbox"
-                            aria-label={`Select ${user.full_name}`}
-                            checked={selectedIds.includes(user.id)}
-                            disabled={user.id === currentUser?.id || actionLoading}
-                            onChange={() => toggleUserSelection(user.id)}
+                            aria-label="Select all users on this page"
+                            checked={allSelectableSelected}
+                            onChange={(event) => {
+                              setSelectedIds(
+                                event.target.checked
+                                  ? selectableUsers.map((user) => user.id)
+                                  : [],
+                              );
+                            }}
                           />
-                        </td>
-                        <td>
-                          <Link to={`/admin/users/${user.id}`}>
-                            {user.full_name}
-                          </Link>
-                        </td>
-                        <td>{user.email}</td>
-                        <td>{user.role.replaceAll("_", " ")}</td>
-                        <td>
-                          {user.is_banned
-                            ? "Banned"
-                            : user.is_active
-                              ? "Active"
-                              : "Inactive"}
-                        </td>
-                        <td>{formatDate(user.created_at)}</td>
+                        </th>
+                        <th scope="col">Name</th>
+                        <th scope="col">Email</th>
+                        <th scope="col">Role</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Joined</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {users.items.map((user) => {
+                        const accountStatus = user.is_banned
+                          ? "Banned"
+                          : user.is_active
+                            ? "Active"
+                            : "Inactive";
+                        return (
+                          <tr key={user.id}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                aria-label={`Select ${user.full_name}`}
+                                checked={selectedIds.includes(user.id)}
+                                disabled={user.id === currentUser?.id || actionLoading}
+                                onChange={() => toggleUserSelection(user.id)}
+                              />
+                            </td>
+                            <td>
+                              <Link to={`/admin/users/${user.id}`}>
+                                {user.full_name}
+                              </Link>
+                              <span className="admin-table-subtext">ID #{user.id}</span>
+                            </td>
+                            <td>{user.email}</td>
+                            <td>
+                              <span className="portal-type">{user.role.replaceAll("_", " ")}</span>
+                            </td>
+                            <td>
+                              <span className={getStatusPillClass(accountStatus)}>
+                                {accountStatus}
+                              </span>
+                            </td>
+                            <td>{formatDate(user.created_at)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div className="admin-pagination" aria-label="User list pagination">
                 <button

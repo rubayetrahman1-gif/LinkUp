@@ -42,6 +42,12 @@ def update_my_profile(
             User.id == current_user.id
         ).first()
 
+        if user is None:
+            raise HTTPException(
+                status_code=404,
+                detail="User not found"
+            )
+
         if user_data.email is not None:
             existing_user = db.query(User).filter(
                 User.email == user_data.email,

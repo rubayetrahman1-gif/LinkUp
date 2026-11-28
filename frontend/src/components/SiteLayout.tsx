@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getCurrentUser, logoutUser } from "../services/authService";
@@ -108,7 +107,6 @@ export function SiteHeader() {
       navigate("/");
     }
   };
-  // const canBrowseJobs = user?.role === "job_seeker" || (!user && !profileLoading && !profileError);
 
   return (
     <header className="site-header">
@@ -116,15 +114,28 @@ export function SiteHeader() {
         <Brand />
         <nav className="nav-links" aria-label="Main navigation">
           <Link to="/">Home</Link>
-          {/* {canBrowseJobs && <Link to="/jobs">Find a job</Link>} */}
+          <Link to="/jobs">Explore jobs</Link>
+          {user?.role === "job_seeker" && <Link to="/applications">My Applications</Link>}
+          {user?.role === "employer" && <Link to="/employer/applications">Applications</Link>}
         </nav>
         <div className="nav-actions">
           {user ? (
             <>
-              {user.role === "employer" && <Link className="button" to="/employer/dashboard">Dashboard <span aria-hidden="true">↗</span></Link>}
-              {user.role === "job_seeker" && <Link className="button" to="/jobs">Find jobs <span aria-hidden="true">↗</span></Link>}
-              {user.role === "admin" && <Link className="button" to="/admin">Admin dashboard <span aria-hidden="true">↗</span></Link>}
-              {user.role === "job_seeker" && <Link to="/applications">My Applications</Link>}
+              {user.role === "employer" && (
+                <Link className="button" to="/employer/dashboard">
+                  Workspace <span aria-hidden="true">↗</span>
+                </Link>
+              )}
+              {user.role === "job_seeker" && (
+                <Link className="button" to="/jobs">
+                  Find jobs <span aria-hidden="true">↗</span>
+                </Link>
+              )}
+              {user.role === "admin" && (
+                <Link className="button" to="/admin">
+                  Admin console <span aria-hidden="true">↗</span>
+                </Link>
+              )}
               <div className="profile-menu" ref={profileMenuRef}>
                 <button
                   className="profile-menu-trigger"
@@ -138,11 +149,31 @@ export function SiteHeader() {
                     <circle cx="20" cy="14" r="7" />
                     <path d="M7 36c1.7-7.5 6.1-11.2 13-11.2S31.3 28.5 33 36" />
                   </svg>
+                  <span className="profile-trigger-name">{user.full_name}</span>
                   <span className="profile-menu-caret" aria-hidden="true">▾</span>
                 </button>
                 {profileMenuOpen && (
                   <div className="profile-menu-dropdown" id="profile-menu-dropdown">
-                    <p className="profile-menu-name" title={user.email}>{user.full_name}</p>
+                    <div className="profile-menu-header">
+                      <p className="profile-menu-name" title={user.email}>{user.full_name}</p>
+                      <span className="profile-menu-email">{user.email}</span>
+                      <span className="profile-menu-role">{user.role.replaceAll("_", " ")}</span>
+                    </div>
+                    {user.role === "job_seeker" && (
+                      <Link to="/applications" onClick={() => setProfileMenuOpen(false)}>
+                        My Applications
+                      </Link>
+                    )}
+                    {user.role === "employer" && (
+                      <Link to="/employer/dashboard" onClick={() => setProfileMenuOpen(false)}>
+                        Employer dashboard
+                      </Link>
+                    )}
+                    {user.role === "admin" && (
+                      <Link to="/admin" onClick={() => setProfileMenuOpen(false)}>
+                        Admin dashboard
+                      </Link>
+                    )}
                     <Link to="/settings" onClick={() => setProfileMenuOpen(false)}>
                       Account settings
                     </Link>
