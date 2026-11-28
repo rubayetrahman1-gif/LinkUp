@@ -47,7 +47,7 @@ function JobDetails() {
       }
     };
 
-    fetchJob();
+    void fetchJob();
     return () => {
       active = false;
     };
@@ -93,6 +93,7 @@ function JobDetails() {
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
+
   const handleApply = async () => {
     if (!job || applying) return;
 
@@ -154,6 +155,10 @@ function JobDetails() {
                     <span aria-hidden="true">◷</span> Posted{" "}
                     {formatDate(job.created_at)}
                   </span>
+                  <span>
+                    <span aria-hidden="true">◈</span>{" "}
+                    {job.salary || "Compensation not specified"}
+                  </span>
                   <span className="job-badge">
                     {formatEmploymentType(job.employment_type)}
                   </span>
@@ -191,19 +196,21 @@ function JobDetails() {
                     <dt>Company</dt>
                     <dd>{job.company_name}</dd>
                   </div>
+                  <div>
+                    <dt>Posted</dt>
+                    <dd>{formatDate(job.created_at)}</dd>
+                  </div>
                 </dl>
                 {hasAccessToken && userRole === "job_seeker" && (
-                  <>
-                    <button
-                      className="button"
-                      type="button"
-                      onClick={handleApply}
-                      disabled={applying}
-                    >
-                      {applying ? "Applying..." : "Apply Now"}
-                      {!applying && <span aria-hidden="true"> →</span>}
-                    </button>
-                  </>
+                  <button
+                    className="button"
+                    type="button"
+                    onClick={handleApply}
+                    disabled={applying}
+                  >
+                    {applying ? "Applying..." : "Apply Now"}
+                    {!applying && <span aria-hidden="true"> →</span>}
+                  </button>
                 )}
                 {!hasAccessToken && (
                   <>
@@ -223,10 +230,11 @@ function JobDetails() {
                   </p>
                 )}
                 {applicationMessage && (
-                  <p role="status">{applicationMessage}</p>
+                  <p className="status-success" role="status">{applicationMessage}</p>
                 )}
-
-                {applicationError && <p role="alert">{applicationError}</p>}
+                {applicationError && (
+                  <p className="status-message" role="alert">{applicationError}</p>
+                )}
               </aside>
             </div>
           )}

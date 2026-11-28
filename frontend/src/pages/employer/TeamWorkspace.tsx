@@ -26,6 +26,7 @@ import type {
   TeamDetails,
   TeamRecommendation,
 } from "../../services/teamService";
+import { getStatusPillClass } from "../../components/jobUtils";
 
 const statuses: ApplicationStatus[] = [
   "Pending",
@@ -271,21 +272,26 @@ function TeamWorkspace() {
           {team && (
             <>
               <header className="team-workspace-header" id="overview">
-                <span className="eyebrow"><span className="eyebrow-dot" /> EMPLOYER TEAM</span>
-                <h1 className="page-title">{team.name}</h1>
-                <p className="page-subtitle">
-                  Your team workspace for job posts, applicants, and hiring decisions.
-                </p>
+                <div className="page-header-bar" style={{ marginBottom: 0 }}>
+                  <div>
+                    <span className="eyebrow"><span className="eyebrow-dot" /> EMPLOYER TEAM</span>
+                    <h1 className="page-title">{team.name}</h1>
+                    <p className="page-subtitle">
+                      Collaborative workspace for team job postings, candidate assignment, and hiring reviews.
+                    </p>
+                  </div>
+                  {role && <span className={getStatusPillClass(role)}>Role: {role}</span>}
+                </div>
                 <nav className="team-section-nav" aria-label="Team sections">
                   {sectionLinks.map(([id, label]) => (
                     <a key={id} href={`#${id}`}>{label}</a>
                   ))}
                 </nav>
                 <div className="team-stat-grid">
-                  <article><strong>{team.member_count}</strong><span>Members</span></article>
-                  <article><strong>{team.job_count}</strong><span>Team jobs</span></article>
-                  <article><strong>{team.application_count}</strong><span>Applications</span></article>
-                  <article><strong>{role}</strong><span>Your role</span></article>
+                  <article><span>Members</span><strong>{team.member_count}</strong></article>
+                  <article><span>Team jobs</span><strong>{team.job_count}</strong></article>
+                  <article><span>Applications</span><strong>{team.application_count}</strong></article>
+                  <article><span>Your role</span><strong>{role}</strong></article>
                 </div>
               </header>
 
@@ -353,21 +359,24 @@ function TeamWorkspace() {
                 ) : (
                   <div className="portal-table-scroll">
                     <table className="portal-table">
-                      <thead><tr><th>Job</th><th>Location</th><th>Posted</th><th>Actions</th></tr></thead>
+                      <thead><tr><th>Job</th><th>Location</th><th>Type</th><th>Posted</th><th>Actions</th></tr></thead>
                       <tbody>
                         {jobs.map((job) => (
                           <tr key={job.id}>
-                            <td><Link to={`/jobs/${job.id}`}>{job.title}</Link><small>{job.company_name}</small></td>
+                            <td className="portal-job-title"><Link to={`/jobs/${job.id}`}>{job.title}</Link><small>{job.company_name}</small></td>
                             <td>{job.location}</td>
+                            <td><span className="job-badge">{job.employment_type.replaceAll("_", " ")}</span></td>
                             <td>{formatDate(job.created_at)}</td>
                             <td className="team-row-actions">
-                              <Link className="portal-action" to={`/jobs/${job.id}`}>View</Link>
-                              {canManageJobs && <button className="portal-action" type="button" onClick={() => startEditingJob(job)}>Edit</button>}
-                              {isOwner && <button className="portal-action portal-delete" type="button" onClick={() => {
-                                if (window.confirm("Delete this Team job? Jobs with applications cannot be deleted because application history must be preserved.")) {
-                                  void runAction(() => deleteTeamJob(teamId, job.id), "Team job deleted.");
-                                }
-                              }}>Delete</button>}
+                              <div className="portal-row-actions">
+                                <Link className="portal-action" to={`/jobs/${job.id}`}>View</Link>
+                                {canManageJobs && <button className="portal-action" type="button" onClick={() => startEditingJob(job)}>Edit</button>}
+                                {isOwner && <button className="portal-action portal-delete" type="button" onClick={() => {
+                                  if (window.confirm("Delete this Team job? Jobs with applications cannot be deleted because application history must be preserved.")) {
+                                    void runAction(() => deleteTeamJob(teamId, job.id), "Team job deleted.");
+                                  }
+                                }}>Delete</button>}
+                              </div>
                             </td>
                           </tr>
                         ))}
@@ -379,7 +388,11 @@ function TeamWorkspace() {
 
               <section className="team-panel" id="team-applications">
                 <div className="team-panel-heading">
-                  <div><span className="eyebrow">CANDIDATE PIPELINE</span><h2>Applications</h2></div>
+                  <div>
+                    <span className="eyebrow">CANDIDATE PIPELINE</span>
+                    <h2>Applications</h2>
+                    <p>Assign reviewers, collect internal recommendations, and update final hiring decisions.</p>
+                  </div>
                   <span className="portal-count">{applications.length} visible</span>
                 </div>
                 {applications.length === 0 ? (
@@ -399,12 +412,12 @@ function TeamWorkspace() {
                               <h3>{application.applicant.full_name}</h3>
                               <a href={`mailto:${application.applicant.email}`}>{application.applicant.email}</a>
                             </div>
-                            <span className="portal-type">{application.status}</span>
+                            <span className={getStatusPillClass(application.status)}>{application.status}</span>
                           </div>
                           <div className="team-application-controls">
                             {canManageApplications && (
                               <label className="form-field">
-                                Assign reviewer
+                                <span>Assign reviewer</span>
                                 <select
                                   value={application.assigned_reviewer_id ?? ""}
                                   onChange={(event) => {
@@ -424,13 +437,13 @@ function TeamWorkspace() {
                             )}
                             {!canManageApplications && (
                               <p className="team-assignment-note">
-                                Assigned reviewer: {application.assigned_reviewer_name ?? "You"}
+                                Assigned reviewer: <strong>{application.assigned_reviewer_name ?? "You"}</strong>
                               </p>
                             )}
                             {canManageApplications && (
                               <>
                                 <label className="form-field">
-                                  Application status
+                                  <span>Application status</span>
                                   <select
                                     value={draft.status}
                                     onChange={(event) => {
@@ -457,7 +470,7 @@ function TeamWorkspace() {
                           </div>
                           {role === "reviewer" ? (
                             <label className="form-field">
-                              Internal recommendation
+                              <span>Internal recommendation</span>
                               <select
                                 value={draft.recommendation}
                                 onChange={(event) => {
@@ -473,9 +486,16 @@ function TeamWorkspace() {
                               </select>
                             </label>
                           ) : (
-                            <p className="team-assignment-note">
-                              Internal recommendation: {application.review_recommendation ?? "Not reviewed"}
-                            </p>
+                            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                              <span className="team-assignment-note">Internal recommendation:</span>
+                              {application.review_recommendation ? (
+                                <span className={getStatusPillClass(application.review_recommendation)}>
+                                  {application.review_recommendation}
+                                </span>
+                              ) : (
+                                <span className="status-pill status-pill-neutral">Not reviewed</span>
+                              )}
+                            </div>
                           )}
                           <div className="team-review-footer">
                             {application.reviewed_by_name && (
@@ -507,11 +527,11 @@ function TeamWorkspace() {
                 {isOwner && (
                   <form className="team-add-member-form" onSubmit={(event) => void handleAddMember(event)}>
                     <label className="form-field">
-                      Employer email
+                      <span>Employer email</span>
                       <input type="email" value={memberEmail} onChange={(event) => setMemberEmail(event.target.value)} placeholder="name@company.com" required />
                     </label>
                     <label className="form-field">
-                      Team role
+                      <span>Team role</span>
                       <select value={memberRole} onChange={(event) => setMemberRole(event.target.value as "recruiter" | "reviewer")}>
                         <option value="recruiter">Recruiter</option>
                         <option value="reviewer">Reviewer</option>
@@ -526,10 +546,11 @@ function TeamWorkspace() {
                     <tbody>
                       {team.members.map((member) => (
                         <tr key={member.user_id}>
-                          <td>{member.full_name}</td>
+                          <td><strong>{member.full_name}</strong></td>
                           <td><a href={`mailto:${member.email}`}>{member.email}</a></td>
                           <td>{isOwner && member.role !== "owner" ? (
                             <select
+                              className="inline-status-select"
                               aria-label={`Role for ${member.full_name}`}
                               value={member.role}
                               onChange={(event) => void runAction(
@@ -540,7 +561,7 @@ function TeamWorkspace() {
                               <option value="recruiter">Recruiter</option>
                               <option value="reviewer">Reviewer</option>
                             </select>
-                          ) : member.role}</td>
+                          ) : <span className={getStatusPillClass(member.role)}>{member.role}</span>}</td>
                           {isOwner && <td>
                             {member.role !== "owner" && (
                               <button className="portal-action portal-delete" type="button" onClick={() => {
@@ -561,7 +582,7 @@ function TeamWorkspace() {
                 <section className="team-panel team-settings-panel" id="team-settings">
                   <div className="team-panel-heading"><div><span className="eyebrow">OWNER CONTROLS</span><h2>Team settings</h2></div></div>
                   <form className="team-add-member-form" onSubmit={(event) => void handleRenameTeam(event)}>
-                    <label className="form-field">Team name
+                    <label className="form-field"><span>Team name</span>
                       <input value={teamName} onChange={(event) => setTeamName(event.target.value)} minLength={2} maxLength={100} required />
                     </label>
                     <button className="button" type="submit" disabled={busyAction}>Save name</button>

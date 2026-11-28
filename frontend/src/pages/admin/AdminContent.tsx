@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import { PublicLayout } from "../../components/SiteLayout";
 import { formatDateTime } from "../../dateTime";
+import { getStatusPillClass } from "../../components/jobUtils";
 import {
   bulkDeleteAdminContent,
   deleteAdminContent,
@@ -82,8 +83,9 @@ function AdminContent() {
     setActionError("");
     setSuccess("");
     try {
-      const result = recordIds.length === 1
-        ? await deleteAdminContent(contentType, recordIds[0])
+      const singleId = recordIds.length === 1 ? recordIds[0] : undefined;
+      const result = singleId !== undefined
+        ? await deleteAdminContent(contentType, singleId)
         : await bulkDeleteAdminContent({
             content_type: contentType,
             record_ids: recordIds,
@@ -117,9 +119,16 @@ function AdminContent() {
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
-          <h1 className="page-title">Content moderation</h1>
-          <p className="page-subtitle">Review and remove supported platform records.</p>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
+              <h1 className="page-title">Content moderation</h1>
+              <p className="page-subtitle">Review, filter, and moderate job postings and submitted applications.</p>
+            </div>
+            {content && (
+              <span className="portal-count">{content.total} record(s) found</span>
+            )}
+          </div>
           <AdminNavigation />
 
           <form className="admin-user-filters" onSubmit={applyFilters}>
@@ -167,7 +176,7 @@ function AdminContent() {
             <button className="button" type="submit">Search</button>
           </form>
 
-          {actionError && <div className="empty-state" role="alert">{actionError}</div>}
+          {actionError && <div className="status-message" role="alert">{actionError}</div>}
           {success && <div className="admin-action-success" role="status">{success}</div>}
           {loading && <div className="loading-state" role="status">Loading content...</div>}
           {error && (
@@ -200,7 +209,7 @@ function AdminContent() {
                   <span>{selectedIds.length} selected</span>
                 </label>
                 <button
-                  className="button"
+                  className="button button-danger"
                   type="button"
                   disabled={!selectedIds.length || actionLoading}
                   onClick={() => {
@@ -212,65 +221,72 @@ function AdminContent() {
                   {actionLoading ? "Removing..." : "Remove selected"}
                 </button>
               </div>
-              <p className="admin-user-count">{content.total} record(s) found</p>
-              <div className="portal-table-scroll">
-                <table className="portal-table admin-moderation-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">Select</th>
-                      <th scope="col">Record</th>
-                      <th scope="col">Owner / applicant</th>
-                      <th scope="col">Status</th>
-                      <th scope="col">Created</th>
-                      <th scope="col">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {content.items.map((item) => (
-                      <tr key={item.id}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            aria-label={`Select ${item.title} ${item.id}`}
-                            checked={selectedIds.includes(item.id)}
-                            disabled={actionLoading}
-                            onChange={() =>
-                              setSelectedIds((ids) =>
-                                ids.includes(item.id)
-                                  ? ids.filter((id) => id !== item.id)
-                                  : [...ids, item.id],
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <strong>{item.title}</strong>
-                          <span className="admin-table-subtext">{item.summary}</span>
-                        </td>
-                        <td>
-                          {item.owner_name}
-                          <span className="admin-table-subtext">{item.owner_email}</span>
-                        </td>
-                        <td>{item.status ?? "—"}</td>
-                        <td>
-                          {item.created_at
-                            ? formatDateTime(item.created_at)
-                            : "Time not tracked"}
-                        </td>
-                        <td>
-                          <button
-                            className="button button-quiet"
-                            type="button"
-                            disabled={actionLoading}
-                            onClick={() => confirmAndDelete(item.id)}
-                          >
-                            Remove
-                          </button>
-                        </td>
+              <div className="admin-table-card">
+                <div className="portal-table-scroll">
+                  <table className="portal-table admin-moderation-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Select</th>
+                        <th scope="col">Record</th>
+                        <th scope="col">Owner / applicant</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Created</th>
+                        <th scope="col">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {content.items.map((item) => (
+                        <tr key={item.id}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`Select ${item.title} ${item.id}`}
+                              checked={selectedIds.includes(item.id)}
+                              disabled={actionLoading}
+                              onChange={() =>
+                                setSelectedIds((ids) =>
+                                  ids.includes(item.id)
+                                    ? ids.filter((id) => id !== item.id)
+                                    : [...ids, item.id],
+                                )
+                              }
+                            />
+                          </td>
+                          <td>
+                            <strong>{item.title}</strong>
+                            <span className="admin-table-subtext">{item.summary}</span>
+                          </td>
+                          <td>
+                            <strong>{item.owner_name}</strong>
+                            <span className="admin-table-subtext">{item.owner_email}</span>
+                          </td>
+                          <td>
+                            {item.status ? (
+                              <span className={getStatusPillClass(item.status)}>{item.status}</span>
+                            ) : (
+                              <span className="status-pill status-pill-info">Published</span>
+                            )}
+                          </td>
+                          <td>
+                            {item.created_at
+                              ? formatDateTime(item.created_at)
+                              : "Time not tracked"}
+                          </td>
+                          <td>
+                            <button
+                              className="portal-action portal-delete"
+                              type="button"
+                              disabled={actionLoading}
+                              onClick={() => confirmAndDelete(item.id)}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
               <div className="admin-pagination" aria-label="Content pagination">
                 <button

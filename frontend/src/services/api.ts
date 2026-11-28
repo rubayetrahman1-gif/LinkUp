@@ -196,6 +196,7 @@ export async function apiRequest<T = unknown>(
   const response = await authenticatedRequest(endpoint, options);
   const data = await parseResponse(response);
 
+  
   if (!response.ok) {
     const detail = isRecord(data) && typeof data.detail === "string"
       ? data.detail

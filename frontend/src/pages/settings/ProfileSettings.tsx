@@ -116,6 +116,7 @@ function ProfileSettings() {
         email: normalizedEmail,
       });
       setProfile(updatedProfile);
+      setAuthenticatedUser(updatedProfile);
       setFullName(updatedProfile.full_name);
       setEmail(updatedProfile.email);
       setSuccess("Your profile has been updated.");
@@ -213,14 +214,23 @@ function ProfileSettings() {
     <PublicLayout>
       <main className="form-page">
         <div className="page-shell">
-          <span className="eyebrow">
-            <span className="eyebrow-dot" />
-            ACCOUNT SETTINGS
-          </span>
-          <h1 className="page-title">Your profile</h1>
-          <p className="page-subtitle">
-            Keep your name and email address up to date.
-          </p>
+          <div className="page-header-bar">
+            <div>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" />
+                ACCOUNT SETTINGS
+              </span>
+              <h1 className="page-title">Your profile & security</h1>
+              <p className="page-subtitle">
+                Manage your personal details, password, and active login sessions.
+              </p>
+            </div>
+            {profile && (
+              <span className="status-pill status-pill-info">
+                Role: {profile.role.replaceAll("_", " ")}
+              </span>
+            )}
+          </div>
 
           {loading && (
             <div className="loading-state" role="status">
@@ -239,12 +249,13 @@ function ProfileSettings() {
           )}
 
           {!loading && profile && (
-            <>
+            <div className="settings-stack">
               <section className="job-form-card" aria-labelledby="profile-section-title">
                 <h2 id="profile-section-title">Profile details</h2>
+                <p>Keep your display name and primary contact email accurate.</p>
                 <form onSubmit={handleSubmit}>
                   <div className="form-grid">
-                    <div className="form-field form-field-full">
+                    <div className="form-field">
                       <label htmlFor="profile-full-name">Full name</label>
                       <input
                         id="profile-full-name"
@@ -257,7 +268,7 @@ function ProfileSettings() {
                         required
                       />
                     </div>
-                    <div className="form-field form-field-full">
+                    <div className="form-field">
                       <label htmlFor="profile-email">Email address</label>
                       <input
                         id="profile-email"
@@ -284,6 +295,7 @@ function ProfileSettings() {
 
               <section className="job-form-card" aria-labelledby="password-section-title">
                 <h2 id="password-section-title">Change password</h2>
+                <p>Updating your password signs you out of all active sessions for security.</p>
                 <form onSubmit={handlePasswordSubmit}>
                   <div className="form-grid">
                     <div className="form-field form-field-full">
@@ -297,7 +309,7 @@ function ProfileSettings() {
                         required
                       />
                     </div>
-                    <div className="form-field form-field-full">
+                    <div className="form-field">
                       <label htmlFor="new-password">New password</label>
                       <input
                         id="new-password"
@@ -309,7 +321,7 @@ function ProfileSettings() {
                         required
                       />
                     </div>
-                    <div className="form-field form-field-full">
+                    <div className="form-field">
                       <label htmlFor="confirm-password">Confirm new password</label>
                       <input
                         id="confirm-password"
@@ -334,8 +346,15 @@ function ProfileSettings() {
               </section>
 
               <section className="job-form-card" aria-labelledby="sessions-section-title">
-                <h2 id="sessions-section-title">Active sessions</h2>
-                <p>Review and revoke sessions connected to your account.</p>
+                <div className="panel-heading">
+                  <div>
+                    <h2 id="sessions-section-title">Active sessions</h2>
+                    <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 14 }}>
+                      Review devices connected to your account and revoke access anytime.
+                    </p>
+                  </div>
+                  <span className="portal-count">{sessions.length} active</span>
+                </div>
 
                 {sessionsLoading && (
                   <div className="loading-state" role="status">
@@ -346,7 +365,7 @@ function ProfileSettings() {
                 {sessionsNotice && <p className="status-success" role="status">{sessionsNotice}</p>}
 
                 {!sessionsLoading && !sessionsError && sessions.length === 0 && (
-                  <p className="empty-state">There are no active sessions.</p>
+                  <div className="empty-state">There are no active sessions.</div>
                 )}
 
                 {!sessionsLoading && sessions.length > 0 && (
@@ -354,7 +373,7 @@ function ProfileSettings() {
                     <table className="portal-table">
                       <thead>
                         <tr>
-                          <th scope="col">Session</th>
+                          <th scope="col">Session / Device</th>
                           <th scope="col">Last used</th>
                           <th scope="col">Expires</th>
                           <th scope="col">Action</th>
@@ -364,8 +383,15 @@ function ProfileSettings() {
                         {sessions.map((session) => (
                           <tr key={session.id}>
                             <td>
-                              {session.user_agent || "Unknown device"}
-                              {session.is_current && <small>Current session</small>}
+                              <strong>{session.user_agent || "Unknown device"}</strong>
+                              {session.is_current && (
+                                <span
+                                  className="status-pill status-pill-success"
+                                  style={{ marginLeft: 8 }}
+                                >
+                                  Current session
+                                </span>
+                              )}
                             </td>
                             <td>
                               {session.last_used_at
@@ -390,7 +416,7 @@ function ProfileSettings() {
                   </div>
                 )}
               </section>
-            </>
+            </div>
           )}
         </div>
       </main>

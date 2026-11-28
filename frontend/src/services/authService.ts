@@ -25,7 +25,6 @@ export async function loginUser(userData: UserLogin): Promise<LoginResponse> {
         method: "POST",
         body: JSON.stringify(userData),
     });
-
     localStorage.setItem("access_token", data.access_token);
 
     return data;

@@ -44,22 +44,25 @@ function AdminSecurity() {
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
-          <h1 className="page-title">Security monitoring</h1>
-          <p className="page-subtitle">Review failed sign-ins grouped by source and account.</p>
+          <div className="admin-dashboard-heading">
+            <div>
+              <span className="eyebrow"><span className="eyebrow-dot" />ADMIN WORKSPACE</span>
+              <h1 className="page-title">Security monitoring</h1>
+              <p className="page-subtitle">Monitor failed sign-ins, blocked attempts, and suspicious sources.</p>
+            </div>
+            <label className="admin-time-range">
+              <span>Activity window</span>
+              <select
+                value={sinceHours}
+                onChange={(event) => setSinceHours(Number(event.target.value))}
+              >
+                <option value={24}>Last 24 hours</option>
+                <option value={168}>Last 7 days</option>
+                <option value={720}>Last 30 days</option>
+              </select>
+            </label>
+          </div>
           <AdminNavigation />
-
-          <label className="admin-time-range">
-            <span>Activity window</span>
-            <select
-              value={sinceHours}
-              onChange={(event) => setSinceHours(Number(event.target.value))}
-            >
-              <option value={24}>Last 24 hours</option>
-              <option value={168}>Last 7 days</option>
-              <option value={720}>Last 30 days</option>
-            </select>
-          </label>
 
           {loading && <div className="loading-state" role="status">Loading security events...</div>}
           {error && (
@@ -71,22 +74,26 @@ function AdminSecurity() {
           )}
           {!loading && !error && overview && (
             <>
-              <section className="admin-dashboard-section" aria-labelledby="security-summary-heading">
-                <div className="panel-heading"><h2 id="security-summary-heading">Sign-in attempts</h2></div>
-                <div className="admin-overview-grid">
+              <section aria-labelledby="security-summary-heading">
+                <div className="kpi-grid kpi-grid-3">
                   <article className="dashboard-stat">
                     <span>Failed or blocked logins</span>
                     <strong>{overview.failed_login_total}</strong>
                   </article>
                   <article className="dashboard-stat">
-                    <span>Window</span>
-                    <strong>{overview.since_hours}h</strong>
+                    <span>Distinct IPs</span>
+                    <strong>{overview.by_ip.length}</strong>
+                  </article>
+                  <article className="dashboard-stat">
+                    <span>Targeted accounts</span>
+                    <strong>{overview.by_account.length}</strong>
+                    <small>Window: {overview.since_hours}h</small>
                   </article>
                 </div>
               </section>
 
               <section className="admin-security-columns">
-                <div className="admin-detail-section">
+                <div className="admin-panel">
                   <div className="panel-heading"><h2>Attempts by IP</h2></div>
                   {overview.by_ip.length ? (
                     <ul className="admin-security-list">
@@ -98,7 +105,7 @@ function AdminSecurity() {
                     </ul>
                   ) : <p className="admin-muted">No failed login activity in this window.</p>}
                 </div>
-                <div className="admin-detail-section">
+                <div className="admin-panel">
                   <div className="panel-heading"><h2>Attempts by account</h2></div>
                   {overview.by_account.length ? (
                     <ul className="admin-security-list">
@@ -112,15 +119,15 @@ function AdminSecurity() {
                 </div>
               </section>
 
-              <section className="admin-dashboard-section">
+              <section className="admin-dashboard-section admin-panel">
                 <div className="panel-heading"><h2>Recent security events</h2></div>
                 {overview.recent_events.length ? (
                   <ul className="admin-activity-list">
                     {overview.recent_events.map((event) => (
                       <li key={event.id}>
                         <div>
-                          <strong>{event.action}</strong>
-                          <span className="admin-table-subtext">
+                          <span className="status-pill status-pill-danger" style={{ marginRight: 8 }}>{event.action}</span>
+                          <span className="admin-table-subtext" style={{ display: "inline", marginTop: 0 }}>
                             {event.target_id || "Unknown account"} · {event.ip_address || "Unknown IP"}
                             {event.details?.reason ? ` · ${String(event.details.reason)}` : ""}
                           </span>

@@ -8,6 +8,7 @@ import {
 } from "../../services/adminService";
 import { AdminNavigation } from "../../components/AdminNavigation";
 import { formatDateTime } from "../../dateTime";
+import { getStatusPillClass } from "../../components/jobUtils";
 
 function AdminDashboard() {
   const [overview, setOverview] = useState<AdminDashboardOverview | null>(null);
@@ -65,22 +66,23 @@ function AdminDashboard() {
     return () => { active = false; };
   }, [teamsPage, teamsRefreshCount]);
 
+  const totalApplications = overview?.content.applications ?? 0;
+
   return (
     <PublicLayout>
       <main className="dashboard-page">
         <div className="page-shell">
-          <span className="eyebrow">
-            <span className="eyebrow-dot" />
-            ADMIN WORKSPACE
-          </span>
           <div className="admin-dashboard-heading">
             <div>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" />
+                ADMIN WORKSPACE
+              </span>
               <h1 className="page-title">Admin dashboard</h1>
               <p className="page-subtitle">
-                Platform health and recent activity at a glance.
+                Platform health, user distribution, hiring teams, and recent activity at a glance.
               </p>
             </div>
-            <AdminNavigation />
             {overview && (
               <button
                 className="button button-secondary"
@@ -91,6 +93,7 @@ function AdminDashboard() {
               </button>
             )}
           </div>
+          <AdminNavigation />
 
           {loading && (
             <div className="loading-state" role="status">
@@ -121,81 +124,92 @@ function AdminDashboard() {
                   <article className="dashboard-stat">
                     <span>Total users</span>
                     <strong>{overview.users.total}</strong>
+                    <small>
+                      {overview.users.by_role.job_seeker} seekers · {overview.users.by_role.employer} employers · {overview.users.by_role.admin} admins
+                    </small>
                   </article>
                   <article className="dashboard-stat">
                     <span>Active accounts</span>
                     <strong>{overview.users.active}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Inactive accounts</span>
-                    <strong>{overview.users.inactive}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Banned accounts</span>
-                    <strong>{overview.users.banned}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Job seekers</span>
-                    <strong>{overview.users.by_role.job_seeker}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Employers</span>
-                    <strong>{overview.users.by_role.employer}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Administrators</span>
-                    <strong>{overview.users.by_role.admin}</strong>
+                    <small>
+                      {overview.users.inactive} inactive · {overview.users.banned} banned
+                    </small>
                   </article>
                   <article className="dashboard-stat">
                     <span>Job postings</span>
                     <strong>{overview.content.jobs}</strong>
+                    <small>+{overview.last_7_days.job_posts} in last 7 days</small>
                   </article>
                   <article className="dashboard-stat">
-                    <span>Applications</span>
+                    <span>Applications & Teams</span>
                     <strong>{overview.content.applications}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>Groups</span>
-                    <strong>{overview.groups.total ?? 0}</strong>
+                    <small>{overview.groups.total ?? 0} active employer teams</small>
                   </article>
                 </div>
               </section>
 
-              <section className="admin-dashboard-section" aria-labelledby="weekly-stats-heading">
-                <div className="panel-heading">
-                  <h2 id="weekly-stats-heading">Last 7 days</h2>
-                </div>
-                <div className="admin-weekly-grid">
-                  <article className="dashboard-stat">
-                    <span>New users</span>
-                    <strong>{overview.last_7_days.new_users}</strong>
-                  </article>
-                  <article className="dashboard-stat">
-                    <span>New job postings</span>
-                    <strong>{overview.last_7_days.job_posts}</strong>
-                  </article>
-                </div>
-              </section>
+              <div className="admin-dashboard-split">
+                <section className="admin-panel" aria-labelledby="weekly-stats-heading">
+                  <div className="panel-heading">
+                    <h2 id="weekly-stats-heading">Last 7 days growth</h2>
+                  </div>
+                  <div className="admin-weekly-grid">
+                    <article className="kpi-card">
+                      <span>New users</span>
+                      <strong>{overview.last_7_days.new_users}</strong>
+                    </article>
+                    <article className="kpi-card">
+                      <span>New job postings</span>
+                      <strong>{overview.last_7_days.job_posts}</strong>
+                    </article>
+                  </div>
+                  <div className="admin-overview-grid" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))", marginTop: 14 }}>
+                    <article className="kpi-card">
+                      <span>Job seekers</span>
+                      <strong>{overview.users.by_role.job_seeker}</strong>
+                    </article>
+                    <article className="kpi-card">
+                      <span>Employers</span>
+                      <strong>{overview.users.by_role.employer}</strong>
+                    </article>
+                    <article className="kpi-card">
+                      <span>Admins</span>
+                      <strong>{overview.users.by_role.admin}</strong>
+                    </article>
+                  </div>
+                </section>
 
-              <section className="admin-dashboard-section" aria-labelledby="content-stats-heading">
-                <div className="panel-heading">
-                  <h2 id="content-stats-heading">Applications by status</h2>
-                </div>
-                <div className="admin-status-list">
-                  {Object.entries(overview.content.applications_by_status).length > 0
-                    ? Object.entries(overview.content.applications_by_status).map(
-                        ([status, count]) => (
-                          <div className="admin-status-item" key={status}>
-                            <span>{status}</span>
-                            <strong>{count}</strong>
-                          </div>
-                        ),
-                      )
-                    : <p className="admin-muted">No applications have been submitted.</p>}
-                </div>
-              </section>
+                <section className="admin-panel" aria-labelledby="content-stats-heading">
+                  <div className="panel-heading">
+                    <h2 id="content-stats-heading">Applications by status</h2>
+                    <span className="portal-count">{totalApplications} total</span>
+                  </div>
+                  <div className="admin-status-list">
+                    {Object.entries(overview.content.applications_by_status).length > 0
+                      ? Object.entries(overview.content.applications_by_status).map(
+                          ([status, count]) => {
+                            const percent = totalApplications > 0
+                              ? Math.round((count / totalApplications) * 100)
+                              : 0;
+                            return (
+                              <div className="admin-status-item" key={status}>
+                                <div className="admin-status-item-top">
+                                  <span className={getStatusPillClass(status)}>{status}</span>
+                                  <strong>{count}</strong>
+                                </div>
+                                <div className="status-bar-track" aria-hidden="true">
+                                  <div className="status-bar-fill" style={{ width: `${percent}%` }} />
+                                </div>
+                              </div>
+                            );
+                          },
+                        )
+                      : <p className="admin-muted">No applications have been submitted.</p>}
+                  </div>
+                </section>
+              </div>
 
-              <section className="admin-dashboard-section" aria-labelledby="group-information-heading">
+              <section className="admin-dashboard-section admin-panel" aria-labelledby="group-information-heading">
                 <div className="panel-heading admin-group-heading">
                   <h2 id="group-information-heading">Group Management</h2>
                   <button
@@ -214,11 +228,9 @@ function AdminDashboard() {
                   <>
                     <div className="admin-overview-grid admin-group-stats">
                       <article className="dashboard-stat"><span>Total groups</span><strong>{teamList.summary.groups_total}</strong></article>
-                      <article className="dashboard-stat"><span>Active groups</span><strong>{teamList.summary.active_groups}</strong></article>
-                      <article className="dashboard-stat"><span>Archived groups</span><strong>{teamList.summary.archived_groups}</strong></article>
+                      <article className="dashboard-stat"><span>Active groups</span><strong>{teamList.summary.active_groups}</strong><small>{teamList.summary.archived_groups} archived</small></article>
                       <article className="dashboard-stat"><span>Memberships</span><strong>{teamList.summary.members_total}</strong></article>
-                      <article className="dashboard-stat"><span>Team jobs</span><strong>{teamList.summary.team_jobs_total}</strong></article>
-                      <article className="dashboard-stat"><span>Team applications</span><strong>{teamList.summary.team_applications_total}</strong></article>
+                      <article className="dashboard-stat"><span>Team jobs</span><strong>{teamList.summary.team_jobs_total}</strong><small>{teamList.summary.team_applications_total} applications</small></article>
                     </div>
                     {teamList.items.length > 0 ? (
                       <div className="admin-team-list">
@@ -230,7 +242,7 @@ function AdminDashboard() {
                                 <span>Group #{team.id} · Created {formatDateTime(team.created_at)}</span>
                                 <span>Owner: {team.owner.full_name} · {team.owner.email}</span>
                               </div>
-                              <span className="portal-type">
+                              <span className={team.is_archived ? "status-pill status-pill-danger" : "status-pill status-pill-success"}>
                                 {team.is_archived ? "Archived" : `${team.members.length} members`}
                               </span>
                             </div>
@@ -239,8 +251,9 @@ function AdminDashboard() {
                               {team.members.map((member) => (
                                 <li key={member.user_id}>
                                   <span>
-                                    {member.full_name}{" "}
-                                    <small>({member.role} · joined {formatDateTime(member.joined_at)})</small>
+                                    <strong>{member.full_name}</strong>{" "}
+                                    <span className={getStatusPillClass(member.role)} style={{ marginLeft: 6 }}>{member.role}</span>{" "}
+                                    <small>· joined {formatDateTime(member.joined_at)}</small>
                                   </span>
                                   <a href={`mailto:${member.email}`}>{member.email}</a>
                                 </li>
@@ -263,7 +276,7 @@ function AdminDashboard() {
                 )}
               </section>
 
-              <section className="admin-dashboard-section" aria-labelledby="recent-activity-heading">
+              <section className="admin-dashboard-section admin-panel" aria-labelledby="recent-activity-heading">
                 <div className="panel-heading">
                   <h2 id="recent-activity-heading">Recent platform activity</h2>
                 </div>
