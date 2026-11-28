@@ -14,7 +14,13 @@ from routers import (
     teams,
 )
 
-app = FastAPI(title="FastAPI + React")
+app = FastAPI(
+    title="LinkUp API",
+    docs_url="/api/docs",
+    openapi_url="/api/openapi.json",
+    redoc_url="/api/redoc",
+    swagger_ui_oauth2_redirect_url="/api/docs/oauth2-redirect"
+)
 
 
 app.include_router(auth.router)
