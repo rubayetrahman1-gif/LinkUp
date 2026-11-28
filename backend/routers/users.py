@@ -120,7 +120,7 @@ def change_my_password(
             )
             db.commit()
             raise HTTPException(
-                status_code=401,
+                status_code=400,
                 detail="Current password is incorrect"
             )
 

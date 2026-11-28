@@ -470,7 +470,7 @@ def test_password_change_with_wrong_current_password(client):
         },
     )
 
-    assert response.status_code == 401
+    assert response.status_code == 400
     assert response.json()["detail"] == "Current password is incorrect"
 
     old_password_login = client.post(
